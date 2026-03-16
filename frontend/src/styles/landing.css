@@ -1,0 +1,190 @@
+/* RESET */
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:"Poppins",sans-serif;
+}
+
+html, body, #root{
+  width:100%;
+  min-height:100vh;
+}
+
+/* MAIN CONTAINER */
+
+.landing-container{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  background:linear-gradient(135deg,#0f172a,#1e293b,#334155);
+  color:white;
+}
+
+/* NAVBAR */
+
+.navbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:22px 60px;
+}
+
+.logo{
+  font-size:26px;
+  font-weight:600;
+  letter-spacing:1px;
+}
+
+/* NAV BUTTONS */
+
+.nav-buttons{
+  display:flex;
+  gap:12px;
+}
+
+.nav-buttons button{
+  padding:10px 18px;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+  cursor:pointer;
+  transition:all 0.25s ease;
+}
+
+/* LOGIN BUTTON */
+
+.nav-buttons button:first-child{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.4);
+  color:white;
+}
+
+.nav-buttons button:first-child:hover{
+  background:white;
+  color:black;
+}
+
+/* SIGNUP BUTTON */
+
+.nav-buttons button:last-child{
+  background:#f43f5e;
+  color:white;
+}
+
+.nav-buttons button:last-child:hover{
+  background:#e11d48;
+  transform:translateY(-1px);
+}
+
+/* HERO SECTION */
+
+.hero{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:40px 20px;
+  gap:12px;
+}
+
+/* HERO TITLE */
+
+.hero h1{
+  font-size:56px;
+  margin-bottom:10px;
+  font-weight:700;
+}
+
+/* HERO DESCRIPTION */
+
+.hero p{
+  max-width:650px;
+  font-size:18px;
+  line-height:1.6;
+  color:rgba(255,255,255,0.85);
+  margin-bottom:30px;
+}
+
+/* CTA BUTTON */
+
+.cta{
+  padding:14px 36px;
+  border:none;
+  border-radius:30px;
+  background:#f43f5e;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+  transition:all 0.3s ease;
+  box-shadow:0 8px 25px rgba(0,0,0,0.35);
+}
+
+.cta:hover{
+  transform:translateY(-2px);
+  background:#e11d48;
+}
+
+/* FOOTER */
+
+.footer{
+  text-align:center;
+  padding:20px;
+  font-size:14px;
+  color:rgba(255,255,255,0.75);
+}
+
+/* ---------------- */
+/* TABLET VERSION */
+/* ---------------- */
+
+@media (max-width:900px){
+
+  .navbar{
+    padding:18px 30px;
+  }
+
+  .hero h1{
+    font-size:42px;
+  }
+
+  .hero p{
+    font-size:16px;
+    max-width:500px;
+  }
+
+}
+
+/* ---------------- */
+/* MOBILE VERSION */
+/* ---------------- */
+
+@media (max-width:600px){
+
+  .navbar{
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .hero{
+    padding:30px 15px;
+  }
+
+  .hero h1{
+    font-size:32px;
+  }
+
+  .hero p{
+    font-size:15px;
+    max-width:90%;
+  }
+
+  .cta{
+    padding:12px 28px;
+    font-size:15px;
+  }
+
+}

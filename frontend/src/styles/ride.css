@@ -1,0 +1,708 @@
+/* ── ride.css — StartRide page styles ───────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #080c12;
+  color: #e2e8f0;
+  font-family: 'Syne', sans-serif;
+}
+
+/* ══════════════════════════════════════════════
+   TOP STEPS BAR — sits between navbar and page
+══════════════════════════════════════════════ */
+.ride-steps-bar {
+  position: sticky;
+  top: 70px; /* sits right under the navbar */
+  z-index: 100;
+  background: rgba(8,12,18,0.95);
+  border-bottom: 1px solid rgba(245,158,11,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ride-steps-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 10px 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.ride-steps-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Steps row (horizontal) */
+.ride-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+}
+
+.ride-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* Connecting line BETWEEN steps */
+.ride-step-line {
+  flex: 1;
+  height: 1px;
+  width: 60px;
+  background: rgba(255,255,255,0.08);
+  margin: 0 6px;
+  transition: background 0.3s;
+}
+
+.ride-step.done .ride-step-line { background: rgba(245,158,11,0.4); }
+
+.ride-step-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: #0f1420;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #475569;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.ride-step.done .ride-step-dot  {
+  border-color: #f59e0b;
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+}
+.ride-step.active .ride-step-dot {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #0f0a00;
+  box-shadow: 0 0 14px rgba(245,158,11,0.5);
+}
+
+.ride-step > span {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em;
+  color: #334155;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ride-step.done > span,
+.ride-step.active > span { color: #f59e0b; }
+
+/* ── Page shell ── */
+.ride-page {
+  min-height: calc(100vh - 70px - 57px); /* account for navbar + steps bar */
+  background: #080c12;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Syne', sans-serif;
+}
+
+/* ── Subtle grid background ── */
+.ride-grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(245,158,11,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,158,11,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Two-column layout ── */
+.ride-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  min-height: calc(100vh - 70px - 57px);
+}
+
+/* ══ LEFT PANEL ══ */
+.ride-panel {
+  padding: 32px 36px 60px;
+  border-right: 1px solid rgba(245,158,11,0.1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: linear-gradient(180deg, rgba(245,158,11,0.03) 0%, transparent 40%);
+}
+
+/* Pulse dot + tag — now only used in top bar */
+.ride-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+}
+
+.ride-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: #f59e0b;
+  opacity: 0.7;
+}
+
+/* Title */
+.ride-title {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #f1f5f9;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.ride-title em {
+  font-style: normal;
+  color: #f59e0b;
+}
+
+.ride-subtitle {
+  font-size: 13px;
+  color: #475569;
+  margin: -8px 0 0;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+/* ── Cards ── */
+.ride-card {
+  background: rgba(15,20,32,0.8);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 20px;
+  transition: border-color 0.3s;
+}
+.ride-card.done { border-color: rgba(245,158,11,0.25); }
+
+.ride-card-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #475569;
+  margin-bottom: 14px;
+}
+
+/* ── Location button ── */
+.ride-loc-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: rgba(245,158,11,0.08);
+  border: 1.5px dashed rgba(245,158,11,0.3);
+  border-radius: 10px;
+  color: #f59e0b;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+.ride-loc-btn:hover:not(:disabled) { background: rgba(245,158,11,0.14); border-style: solid; }
+.ride-loc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ride-loc-found {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ride-loc-coords {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.ride-loc-status {
+  font-size: 11px;
+  color: #22c55e;
+  margin: 2px 0 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.ride-reget-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #64748b;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.ride-reget-btn:hover { color: #f59e0b; border-color: rgba(245,158,11,0.4); }
+
+/* ── Destination input + autocomplete ── */
+.ride-dest-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: flex-start; /* important: keep row aligned when dropdown appears */
+}
+
+/* Wrapper gives the dropdown a positioning context */
+.ride-autocomplete-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.ride-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #f1f5f9;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.ride-input::placeholder { color: #334155; }
+.ride-input:focus {
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.04);
+}
+
+/* ── Suggestions dropdown ── */
+.ride-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: #0f1420;
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 9999;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  animation: sug-appear 0.15s ease;
+}
+
+@keyframes sug-appear {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ride-sug-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  color: #475569;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.ride-sug-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.ride-sug-item:last-child { border-bottom: none; }
+.ride-sug-item:hover { background: rgba(245,158,11,0.07); }
+
+.ride-sug-pin { font-size: 14px; flex-shrink: 0; opacity: 0.6; }
+
+.ride-sug-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ride-sug-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-family: 'Syne', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ride-sug-sub {
+  font-size: 11px;
+  color: #475569;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Search button ── */
+.ride-search-btn {
+  width: 46px;
+  height: 46px;
+  background: #f59e0b;
+  border: none;
+  border-radius: 10px;
+  color: #0f0a00;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-top: 0;
+}
+.ride-search-btn:hover:not(:disabled) { background: #fbbf24; transform: scale(1.05); }
+.ride-search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Vehicle picker ── */
+.ride-vehicle-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.ride-vehicles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.ride-vehicle-btn {
+  padding: 10px 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.ride-vehicle-btn span:first-child { font-size: 20px; }
+.ride-vehicle-btn:hover { border-color: rgba(245,158,11,0.3); color: #94a3b8; }
+.ride-vehicle-btn.active { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.5); color: #f59e0b; }
+
+/* ── Route stats card ── */
+.ride-route-card { animation: fadeSlideUp 0.4s ease; }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ride-route-stats {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ride-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ride-stat-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #f1f5f9;
+  line-height: 1;
+}
+.ride-stat-val.safe { color: #22c55e; }
+
+.ride-stat-unit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #475569;
+}
+
+.ride-stat-label {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.1em;
+  color: #334155;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.ride-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255,255,255,0.07);
+}
+
+/* Safety bar */
+.ride-safety-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ride-safety-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ride-safety-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
+.ride-safety-label {
+  font-size: 11px;
+  color: #22c55e;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+
+/* Police stations */
+.ride-police-list {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 14px;
+}
+
+.ride-police-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.ride-police-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 130px;
+  overflow-y: auto;
+}
+.ride-police-items::-webkit-scrollbar { width: 3px; }
+.ride-police-items::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.2); border-radius: 2px; }
+
+.ride-police-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.ride-police-name {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.ride-police-eta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* ── Error ── */
+.ride-error {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #fca5a5;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  animation: fadeSlideUp 0.3s ease;
+}
+
+/* ── Launch button ── */
+.ride-launch-btn {
+  position: relative;
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s;
+  animation: fadeSlideUp 0.4s ease;
+}
+.ride-launch-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(245,158,11,0.35); }
+.ride-launch-btn:active { transform: translateY(0); }
+
+.ride-launch-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 15px;
+  border: 2px solid rgba(245,158,11,0.5);
+  animation: ring-pulse 2s ease-in-out infinite;
+}
+.ride-launch-ring2 { animation-delay: 0.8s; }
+
+@keyframes ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  100% { transform: scale(1.04); opacity: 0; }
+}
+
+.ride-launch-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f0a00;
+}
+
+/* Track button */
+.ride-track-btn {
+  width: 100%;
+  padding: 16px;
+  background: rgba(34,197,94,0.1);
+  border: 1.5px solid rgba(34,197,94,0.3);
+  border-radius: 14px;
+  color: #4ade80;
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: fadeSlideUp 0.4s ease;
+}
+.ride-track-btn:hover { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.5); transform: translateX(4px); }
+
+/* ── Spinner ── */
+.ride-spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(245,158,11,0.2);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══ MAP PANEL ══ */
+.ride-map-panel {
+  position: relative;
+  background: #060a10;
+}
+
+.ride-map-label {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(8,12,18,0.85);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #f59e0b;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.ride-map-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+}
+
+.ride-map-empty-icon { font-size: 48px; opacity: 0.15; }
+
+.ride-map-empty p {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.ride-map-empty-sub {
+  font-size: 13px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #0f172a !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ride-steps-inner { padding: 10px 16px; gap: 16px; }
+  .ride-step-line { width: 24px; }
+  .ride-step > span { display: none; } /* hide labels on mobile, keep dots */
+  .ride-step.active > span { display: block; } /* show only active label */
+
+  .ride-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 400px;
+  }
+  .ride-map-panel { min-height: 400px; }
+  .ride-panel { border-right: none; border-bottom: 1px solid rgba(245,158,11,0.1); }
+  .ride-title { font-size: 40px; }
+}
