@@ -13,11 +13,11 @@ function getToken() {
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins  < 1)  return "Just now";
-  if (mins  < 60) return `${mins}m ago`;
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 }
@@ -39,9 +39,9 @@ function getGreeting() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [data, setData]       = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = getToken();
@@ -50,8 +50,8 @@ export default function Dashboard() {
     axios.get(`${API}/dashboard`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(res => { setData(res.data); setLoading(false); })
-    .catch(() => { setError("Failed to load dashboard."); setLoading(false); });
+      .then(res => { setData(res.data); setLoading(false); })
+      .catch(() => { setError("Failed to load dashboard."); setLoading(false); });
   }, [navigate]);
 
   if (loading) return (
@@ -90,16 +90,16 @@ export default function Dashboard() {
               {stats.activeRide
                 ? "⚡ You have an active ride in progress"
                 : isNight
-                ? "🌙 Stay safe tonight. Night rider mode is " + (user.nightRider ? "on" : "off") + "."
-                : "Ready for your next ride? Stay safe out there."}
+                  ? "🌙 Stay safe tonight. Night rider mode is " + (user.nightRider ? "on" : "off") + "."
+                  : "Ready for your next ride? Stay safe out there."}
             </p>
           </div>
           <div className="db-avatar">
             {user.profilePhoto
               ? <img src={user.profilePhoto} alt="avatar" />
               : <div className="db-avatar-letter">
-                  {user.firstName?.[0]?.toUpperCase() || "?"}
-                </div>
+                {user.firstName?.[0]?.toUpperCase() || "?"}
+              </div>
             }
           </div>
         </div>
@@ -180,40 +180,64 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            <div className="db-rides">
-              {recentRides.map((ride, i) => (
-                <div key={ride._id} className="db-ride-card" style={{ animationDelay: `${i * 0.07}s` }}>
-                  <div className="db-ride-icon">
-                    {ride.vehicleType === "car" ? "🚗"
-                     : ride.vehicleType === "scooter" ? "🛵"
-                     : "🏍️"}
+            <>
+              <div className="db-rides">
+                {recentRides.slice(0, 2).map((ride, i) => (
+                  <div key={ride._id} className="db-ride-card" style={{ animationDelay: `${i * 0.07}s` }}>
+                    <div className="db-ride-icon">
+                      {ride.vehicleType === "car" ? "🚗"
+                        : ride.vehicleType === "scooter" ? "🛵"
+                          : "🏍️"}
+                    </div>
+
+                    <div className="db-ride-info">
+                      <p className="db-ride-dest">
+                        {ride.destinationName || "Unknown destination"}
+                      </p>
+
+                      <p className="db-ride-meta">
+                        {ride.distance ? `${ride.distance} km` : "—"}
+                        {ride.expectedTime ? ` · ${ride.expectedTime} min` : ""}
+                        {" · "}{timeAgo(ride.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className={`db-ride-status ${ride.status === "COMPLETED"
+                      ? "completed"
+                      : ride.status === "ACTIVE"
+                        ? "active"
+                        : "cancelled"
+                      }`}>
+                      {ride.status === "COMPLETED"
+                        ? "✓ Done"
+                        : ride.status === "ACTIVE"
+                          ? "⚡ Live"
+                          : "✕ Cancelled"}
+                    </div>
+
+                    {ride.status === "ACTIVE" && (
+                      <button
+                        className="db-rejoin-btn"
+                        onClick={() => navigate(`/tracking/${ride._id}`)}
+                      >
+                        Rejoin
+                      </button>
+                    )}
                   </div>
-                  <div className="db-ride-info">
-                    <p className="db-ride-dest">
-                      {ride.destinationName || "Unknown destination"}
-                    </p>
-                    <p className="db-ride-meta">
-                      {ride.distance ? `${ride.distance} km` : "—"}
-                      {ride.expectedTime ? ` · ${ride.expectedTime} min` : ""}
-                      {" · "}{timeAgo(ride.createdAt)}
-                    </p>
-                  </div>
-                  <div className={`db-ride-status ${ride.status === "COMPLETED" ? "completed" : ride.status === "ACTIVE" ? "active" : "cancelled"}`}>
-                    {ride.status === "COMPLETED" ? "✓ Done"
-                     : ride.status === "ACTIVE"    ? "⚡ Live"
-                     : "✕ Cancelled"}
-                  </div>
-                  {ride.status === "ACTIVE" && (
-                    <button
-                      className="db-rejoin-btn"
-                      onClick={() => navigate(`/tracking/${ride._id}`)}
-                    >
-                      Rejoin
-                    </button>
-                  )}
+                ))}
+              </div>
+
+              {recentRides.length > 2 && (
+                <div className="db-view-more">
+                  <button
+                    className="db-view-rides-btn"
+                    onClick={() => navigate("/rides")}
+                  >
+                    View All Rides →
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 

@@ -421,3 +421,31 @@ body {
   .lt-quick-btns { flex-direction: column; }
   .lt-quick-btn { min-width: unset; }
 }
+
+/* CRIME CIRCLES */
+.lt-safety-legend {
+  position: absolute;
+  top: 80px;
+  left: 10px;
+  background: rgba(20,20,20,0.9);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: white;
+  z-index: 1000;
+  line-height: 1.6;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.lt-safety-legend .lg {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.lg-green { background: #2ecc71; }
+.lg-yellow { background: #f1c40f; }
+.lg-orange { background: #e67e22; }
+.lg-red { background: #e74c3c; }

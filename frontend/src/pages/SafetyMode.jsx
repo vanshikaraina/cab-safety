@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSafetyMode } from "../context/SafetyModeContext";
 import { useRecording } from "../context/RecordingContext";
+import "../styles/safetyMode.css";
 
 const SafetyMode = () => {
 
@@ -20,52 +21,43 @@ const SafetyMode = () => {
     return `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
   };
 
-  // Auto start recording when safety mode page loads
+  // trigger safety check every 60 seconds
   useEffect(() => {
-
-    if (!isRecording) {
-      startRecording();
-    }
-
-  }, []);
-
-  // Trigger safety check every 60 seconds
-  useEffect(() => {
-
     if (seconds > 0 && seconds % 60 === 0) {
       setShowCheck(true);
     }
-
   }, [seconds]);
 
-  // Auto close safety check after 15 seconds
+  // auto close safety check
   useEffect(() => {
-
     if (showCheck) {
 
       const timer = setTimeout(() => {
         setShowCheck(false);
-        setMissedChecks((prev) => prev + 1);
+        setMissedChecks(prev => prev + 1);
       }, 15000);
 
       return () => clearTimeout(timer);
 
     }
-
   }, [showCheck]);
 
-  // Alert after 3 missed checks
+  // alert if 3 missed checks
   useEffect(() => {
-
     if (missedChecks >= 3) {
       alert("⚠️ Safety check missed 3 times. Emergency protocol should trigger.");
     }
-
   }, [missedChecks]);
 
   const handleSafe = () => {
     setShowCheck(false);
     setMissedChecks(0);
+  };
+
+  const handleStartMonitoring = () => {
+    if (!isRecording) {
+      startRecording();
+    }
   };
 
   const handleTurnOff = () => {
@@ -83,56 +75,92 @@ const SafetyMode = () => {
 
   return (
 
-    <div style={{ padding:"80px 40px", color:"white" }}>
+    <div className="safety-container">
 
       <button
+        className="back-btn"
         onClick={() => navigate(-1)}
-        style={{ marginBottom:"20px" }}
       >
         ← Back
       </button>
 
-      <h2>🛡 Safety Mode Active</h2>
+      <h2 className="title">🛡 Safety Mode Active</h2>
 
-      <p style={{ marginTop:"20px" }}>
-        Ride Time: <strong>{formatTime(seconds)}</strong>
-      </p>
+      <div className="status-badge">
+        {isRecording ? "🟢 Monitoring Active" : "🔴 Monitoring Paused"}
+      </div>
 
-      <p style={{ marginTop:"10px" }}>
-        Safety monitoring is active.
+      {/* start monitoring button */}
+      {!isRecording && (
+        <button
+          className="start-btn"
+          onClick={handleStartMonitoring}
+        >
+          🎙 Start Monitoring
+        </button>
+      )}
+
+      <div className="timer-card">
+        <h1>{formatTime(seconds)}</h1>
+        <p>Ride Duration</p>
+      </div>
+
+      {isRecording && (
+        <div className="recording-indicator">
+          <span className="dot"></span>
+          Recording Audio
+        </div>
+      )}
+
+      <p className="missed-checks">
+        Missed Safety Checks: {missedChecks} / 3
       </p>
 
       {showCheck && (
 
-        <div
-          style={{
-            marginTop:"30px",
-            padding:"20px",
-            background:"#1e293b",
-            borderRadius:"10px"
-          }}
-        >
+        <div className="safety-check">
 
-          <p>Are you safe?</p>
+          <h3>⚠ Safety Check</h3>
 
-          <button
-            onClick={handleSafe}
-            style={{ marginRight:"10px" }}
-          >
-            Yes
-          </button>
+          <p>Are you safe right now?</p>
 
-          <button
-            onClick={() => alert("Report issue triggered")}
-          >
-            Report Issue
-          </button>
+          <div className="check-buttons">
+
+            <button
+              className="safe-btn"
+              onClick={handleSafe}
+            >
+              Yes I'm Safe
+            </button>
+
+            <button
+              className="danger-btn"
+              onClick={() => alert("Issue reported")}
+            >
+              Report Problem
+            </button>
+
+          </div>
+
+          <small>Auto closing in 15 seconds</small>
 
         </div>
 
       )}
 
-      <div style={{ marginTop:"30px" }}>
+      <div className="safety-tips">
+
+        <h4>Safety Tips</h4>
+
+        <ul>
+          <li>Share ride with trusted contact</li>
+          <li>Stay aware of surroundings</li>
+          <li>Use emergency button if needed</li>
+        </ul>
+
+      </div>
+
+      <div className="confirm-box">
 
         <label>
           <input
@@ -146,16 +174,10 @@ const SafetyMode = () => {
       </div>
 
       <button
+        className="end-btn"
         onClick={handleTurnOff}
-        style={{
-          marginTop:"20px",
-          padding:"10px 16px",
-          borderRadius:"8px",
-          border:"none",
-          cursor:"pointer"
-        }}
       >
-        Turn Off Safety Mode
+        🔴 End Safety Mode
       </button>
 
     </div>

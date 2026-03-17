@@ -1,0 +1,142 @@
+.safety-container{
+  padding:80px 40px;
+  color:white;
+  min-height:100vh;
+  font-family:'DM Sans',sans-serif;
+}
+
+.title{
+  font-size:28px;
+  margin-bottom:20px;
+}
+
+.back-btn{
+  background:transparent;
+  border:none;
+  color:#94a3b8;
+  cursor:pointer;
+  margin-bottom:20px;
+}
+
+.status-badge{
+  display:inline-block;
+  padding:8px 16px;
+  border-radius:20px;
+  background:#1e293b;
+  margin-bottom:25px;
+  font-size:14px;
+}
+
+.timer-card{
+  width:220px;
+  height:120px;
+  background:#0f172a;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:20px;
+  box-shadow:0 0 20px rgba(99,102,241,0.3);
+}
+
+.timer-card h1{
+  font-size:38px;
+  margin:0;
+}
+
+.timer-card p{
+  font-size:14px;
+  color:#94a3b8;
+}
+
+.recording-indicator{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:15px;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:red;
+  animation:pulse 1.2s infinite;
+}
+
+@keyframes pulse{
+  0%{opacity:1;}
+  50%{opacity:0.3;}
+  100%{opacity:1;}
+}
+
+.missed-checks{
+  color:#cbd5f5;
+  margin-bottom:20px;
+}
+
+.safety-check{
+  margin-top:20px;
+  padding:25px;
+  background:#0f172a;
+  border-radius:12px;
+  width:320px;
+  box-shadow:0 0 25px rgba(0,0,0,0.6);
+}
+
+.check-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.safe-btn{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+}
+
+.danger-btn{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#ef4444;
+  color:white;
+  cursor:pointer;
+}
+
+.safety-tips{
+  margin-top:30px;
+  background:#0f172a;
+  padding:20px;
+  border-radius:12px;
+  width:320px;
+}
+
+.safety-tips h4{
+  margin-bottom:10px;
+}
+
+.safety-tips ul{
+  padding-left:18px;
+  color:#cbd5f5;
+}
+
+.confirm-box{
+  margin-top:25px;
+}
+
+.end-btn{
+  margin-top:20px;
+  padding:10px 16px;
+  border:none;
+  border-radius:10px;
+  background:#dc2626;
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+}

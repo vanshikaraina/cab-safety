@@ -1,0 +1,13 @@
+# environment files
+.env
+backend/.env
+
+# uploaded recordings
+backend/uploads/
+
+# dependencies
+node_modules/
+
+# build folders
+dist/
+build/

@@ -9,6 +9,7 @@ router.post("/start", auth, async (req, res) => {
   try {
     const {
       lat, lng,
+      startLocationName,
       destLat, destLng,
       destinationName,
       vehicleType,
@@ -19,6 +20,7 @@ router.post("/start", auth, async (req, res) => {
     const ride = new Ride({
       userId: req.userId,
       startLocation: { lat, lng },
+      startLocationName,
       endLocation: { lat: destLat, lng: destLng },
       destinationName,
       vehicleType,

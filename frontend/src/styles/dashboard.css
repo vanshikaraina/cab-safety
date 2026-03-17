@@ -431,3 +431,42 @@
   .db-banner { padding: 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
   .db-name { font-size: 26px; }
 }
+
+/* RIDE HISTORY BACK BUTTON -> AllRides.jsx*/
+.db-back-btn{
+  background: none;
+  border: none;
+  color: #60a5fa;
+  font-size: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-back-btn:hover{
+  text-decoration: underline;
+}
+
+/* VIEW ALL RIDES BUTTON -> Dashboard.jsx */
+.db-view-rides-btn{
+  margin-top: 12px;
+  padding: 8px 14px;
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.db-view-rides-btn:hover{
+  background: #374151;
+  transform: translateY(-1px);
+}
+
+.db-view-rides-btn:active{
+  transform: translateY(0);
+}

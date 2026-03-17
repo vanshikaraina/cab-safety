@@ -13,6 +13,8 @@ const rideSchema = new mongoose.Schema({
     lng: { type: Number }
   },
 
+  startLocationName: { type: String, default: "" },
+  
   endLocation: {
     lat: { type: Number },
     lng: { type: Number }

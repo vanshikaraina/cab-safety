@@ -11,6 +11,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import "../styles/LiveTracking.css";
 import Navbar from "../components/Navbar";
+import L from "leaflet";
 
 const API = "http://localhost:5000/api";
 const STOPPED_THRESHOLD_M = 50;
@@ -86,6 +87,71 @@ function MapFollower({ center, autoFollow }) {
   return null;
 }
 
+function SafetyLayer({ policeStations, route }) {
+
+  const map = useMap();
+  const layerRef = useRef([]);
+
+  function distanceKm(a, b) {
+    const R = 6371;
+    const dLat = (b[0] - a[0]) * Math.PI / 180;
+    const dLng = (b[1] - a[1]) * Math.PI / 180;
+
+    const x =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(a[0] * Math.PI / 180) *
+      Math.cos(b[0] * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  }
+
+useEffect(() => {
+
+  if (!route || route.length === 0) return;
+
+  // remove old circles
+  layerRef.current.forEach(layer => map.removeLayer(layer));
+  layerRef.current = [];
+
+  route.forEach(([lat, lng]) => {
+
+    let minDist = Infinity;
+
+    policeStations.forEach(p => {
+      const d = distanceKm([lat, lng], [p.lat, p.lng]);
+      if (d < minDist) minDist = d;
+    });
+
+    let color;
+
+    if (minDist < 6) color = "#2ecc71";
+    else if (minDist < 11) color = "#f1c40f";
+    else if (minDist < 16) color = "#e67e22";
+    else color = "#e74c3c";
+
+    const circle = L.circle([lat, lng], {
+      radius: 120,
+      color,
+      fillColor: color,
+      fillOpacity: 0.45,
+      weight: 1
+    }).addTo(map);
+
+    layerRef.current.push(circle);
+  });
+
+  // CLEANUP when component unmounts
+  return () => {
+    layerRef.current.forEach(layer => map.removeLayer(layer));
+    layerRef.current = [];
+  };
+
+}, [policeStations, route, map]);
+
+  return null;
+}
+
 export default function LiveTracking() {
   const { rideId } = useParams();
   const navigate   = useNavigate();
@@ -112,6 +178,7 @@ export default function LiveTracking() {
   const [sosActive, setSosActive]           = useState(false);
   const [sosMsg, setSosMsg]                 = useState("");
   const [quickMsg, setQuickMsg]             = useState("");
+  const [showSafetyMap, setShowSafetyMap] = useState(false);
 
   const lastPosRef      = useRef(null);
   const lastMoveTimeRef = useRef(Date.now());
@@ -176,14 +243,14 @@ export default function LiveTracking() {
     const maxLng = (Math.max(...lngs) + 0.01).toFixed(6);
     const query = `[out:json][timeout:15];(node["amenity"="police"](${minLat},${minLng},${maxLat},${maxLng}););out body;`;
     try {
-      const res = await axios.post("https://overpass-api.de/api/interpreter", query,
+      const res = await axios.post("https://overpass.kumi.systems/api/interpreter", query,
         { headers: { "Content-Type": "text/plain" }, timeout: 15000 });
       const nodes = res.data?.elements || [];
       const cumDists = buildCumDists(coords);
       const seen = new Set();
       setPoliceStations(
-        nodes
-          .map(n => ({ name: n.tags?.name || "Police Station", distKm: cumDists[closestIdx(coords, [n.lat, n.lon])] }))
+        nodes.map(n => ({
+          name: n.tags?.name || "Police Station",lat: n.lat,lng: n.lon, distKm: cumDists[closestIdx(coords, [n.lat, n.lon])]}))          
           .sort((a, b) => a.distKm - b.distKm)
           .filter(s => { const k = Math.round(s.distKm * 2); if (seen.has(k)) return false; seen.add(k); return true; })
       );
@@ -434,20 +501,42 @@ export default function LiveTracking() {
 
         {currentPos && (
           <div className="lt-map-wrapper">
+            <div className="lt-safety-legend">
+            <div><span className="lg lg-green"></span> Safe: Police &lt; 6 km</div>
+            <div><span className="lg lg-yellow"></span> Moderate: 6-11 km</div>
+            <div><span className="lg lg-orange"></span> Risky: 11-16 km</div>
+            <div><span className="lg lg-red"></span> Unsafe: Police &gt; 16 km</div>
+          </div>
             <div className="lt-map-controls">
-              <button className={`lt-follow-btn ${autoFollow ? "active" : ""}`} onClick={() => setAutoFollow(p => !p)}>
+              <button
+                className={`lt-follow-btn ${autoFollow ? "active" : ""}`}
+                onClick={() => setAutoFollow(p => !p)}
+              >
                 {autoFollow ? "🔒 Following" : "🔓 Free"}
+              </button>
+              <button
+                className="lt-follow-btn"
+                onClick={() => setShowSafetyMap(p => !p)}
+              >
+                {showSafetyMap ? "Hide Safety Map" : "Show Safety Map"}
               </button>
             </div>
             <MapContainer center={currentPos} zoom={15} style={{ height: "100%", width: "100%" }}>
               <MapFollower center={currentPos} autoFollow={autoFollow} />
+              {showSafetyMap && (
+                <SafetyLayer policeStations={policeStations} route={route} />)}
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>'
               />
               <Marker position={currentPos} />
               {destRef.current && <Marker position={destRef.current} />}
-              {route.length > 0 && <Polyline positions={route} pathOptions={{ color: "#f59e0b", weight: 5, opacity: 0.9 }} />}
+              {route.length > 0 && (
+                <Polyline
+                  positions={route}
+                  pathOptions={{ color: "#f59e0b", weight: 5, opacity: 0.9 }}
+                />
+              )}
             </MapContainer>
           </div>
         )}

@@ -13,6 +13,7 @@ import SafetyMode from "./pages/SafetyMode";
 import RecordingWidget from "./components/RecordingWidget";
 import SafetyIndicator from "./components/SafetyIndicator";
 import SafetyCheckPopup from "./components/SafetyCheckPopup";
+import AllRides from "./pages/AllRides";
 
 import { RecordingProvider, useRecording } from "./context/RecordingContext";
 import { SafetyModeProvider, useSafetyMode } from "./context/SafetyModeContext";
@@ -52,6 +53,7 @@ function AppContent() {
         <Route path="/safety-center" element={<SafetyCenter />} />
         <Route path="/recordings" element={<Recordings />} />
         <Route path="/safety-mode" element={<SafetyMode />} />
+        <Route path="/rides" element={<AllRides />} />
       </Routes>
 
     </BrowserRouter>
