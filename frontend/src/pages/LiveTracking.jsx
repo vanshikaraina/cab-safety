@@ -241,6 +241,11 @@ export default function LiveTracking() {
     axios.get(`${API}/rides/${rideId}`)
       .then(async (res) => {
         const d = res.data;
+        // 🚨 ADD THIS CHECK
+        if (d.status !== "ACTIVE") {
+          setLoadError("This ride is already completed.");
+          return;
+        }
         setRide(d);
         if (d.startTime) {
           const elapsed = Math.floor((Date.now() - new Date(d.startTime).getTime()) / 1000);
@@ -362,6 +367,7 @@ export default function LiveTracking() {
 
   useEffect(() => {
     if (!navigator.geolocation) return;
+    if (!ride || ride.status !== "ACTIVE") return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const lat = pos.coords.latitude;
