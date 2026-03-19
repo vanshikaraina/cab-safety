@@ -1,21 +1,29 @@
+/* ========================= */
+/* NAVBAR BASE */
+/* ========================= */
 .navbar{
   width:100%;
   height:70px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:0 40px;
+  padding:0 20px;
   background:#0f172a;
   color:white;
   border-bottom:1px solid rgba(255,255,255,0.1);
+  position:relative;
 }
 
+/* LOGO */
 .nav-logo{
   font-size:22px;
   font-weight:600;
   cursor:pointer;
 }
 
+/* ========================= */
+/* DESKTOP LINKS */
+/* ========================= */
 .nav-links{
   display:flex;
   gap:15px;
@@ -35,6 +43,20 @@
   background:#334155;
 }
 
+/* ACTIVE LINK */
+.active{
+  background:#2563eb !important;
+}
+
+/* LOCATION BUTTON */
+.nav-location-btn{
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* LOGOUT */
 .logout-btn{
   background:#ef4444 !important;
 }
@@ -43,9 +65,48 @@
   background:#dc2626 !important;
 }
 
-.nav-icon{
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
+/* ========================= */
+/* HAMBURGER */
+/* ========================= */
+.hamburger{
+  display:none;
+  font-size:26px;
+  cursor:pointer;
+}
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+@media (max-width:768px){
+
+  /* show hamburger */
+  .hamburger{
+    display:block;
+  }
+
+  /* hide links from row */
+  .nav-links{
+    display:none;
+  }
+
+  /* dropdown */
+  .nav-links.open{
+    display:flex;
+    flex-direction:column;
+    position:absolute;
+    top:70px;
+    left:0;
+    width:100%;
+    background:#0f172a;
+    padding:15px 0;
+    gap:10px;
+    z-index:1000;
+  }
+
+  /* buttons */
+  .nav-links button{
+    width:90%;
+    margin:0 auto;
+    padding:12px;
+  }
 }
