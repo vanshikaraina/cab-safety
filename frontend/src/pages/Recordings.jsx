@@ -124,7 +124,7 @@ const Recordings = () => {
 
             <audio
               controls
-              src={`http://localhost:5000/${rec.fileUrl}`}
+              src={`https://cab-safety.onrender.com/${rec.fileUrl}`}
             />
 
             <button

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "../styles/ProfileSafety.css";
 
-const API = "http://localhost:5000/api";
+const API = "https://cab-safety.onrender.com/api";
 
 const VEHICLE_OPTIONS = [
   { value: "bike",    label: "🏍️ Bike" },

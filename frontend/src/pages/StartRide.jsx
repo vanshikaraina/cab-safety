@@ -262,7 +262,7 @@ function StartRide() {
   const startRide = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/rides/start",
+        "https://cab-safety.onrender.com/api/rides/start",
         {
           lat: currentLocation[0], lng: currentLocation[1],
           destLat: destinationCoords[0], destLng: destinationCoords[1],

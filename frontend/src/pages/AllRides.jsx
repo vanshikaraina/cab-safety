@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 
-const API = "http://localhost:5000/api";
+const API = "https://cab-safety.onrender.com/api";
 
 function getToken() {
   return localStorage.getItem("token");
