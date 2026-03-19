@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import "../styles/ProfileSafety.css";
+import "../styles/profileSafety.css";
 
 const API = "https://cab-safety.onrender.com/api";
 
