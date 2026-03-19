@@ -20,6 +20,7 @@ const STOPPED_TIMEOUT_MS = 5 * 60 * 1000;
 const DEST_RADIUS_M = 200;
 
 function getToken() {
+  if (typeof window === "undefined") return null;
   return (
     localStorage.getItem("token") ||
     localStorage.getItem("authToken") ||

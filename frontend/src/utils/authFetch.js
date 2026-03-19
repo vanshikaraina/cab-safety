@@ -1,6 +1,9 @@
 const authFetch = async (url, options = {}) => {
 
-  const token = localStorage.getItem("token");
+  const token =
+  typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
 
   const res = await fetch(`https://cab-safety.onrender.com${url}`, {
     ...options,

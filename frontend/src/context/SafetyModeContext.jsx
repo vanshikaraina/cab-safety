@@ -63,8 +63,10 @@ export const SafetyModeProvider = ({ children }) => {
 
         try {
 
-          const token = localStorage.getItem("token");
-
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("token")
+              : null;
           const res = await axios.post(
             `${API}/profile/sos`,
             {

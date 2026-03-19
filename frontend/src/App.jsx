@@ -29,7 +29,10 @@ function AppContent() {
     reportIssue
   } = useSafetyMode();
 
-  const token = localStorage.getItem("token");
+  const token =
+  typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
 
   return (
     <BrowserRouter>

@@ -7,7 +7,9 @@ import "../styles/Dashboard.css";
 const API = "https://cab-safety.onrender.com/api";
 
 function getToken() {
-  return localStorage.getItem("token");
+  return typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
 }
 
 // ✅ helper for clean time

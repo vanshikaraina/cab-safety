@@ -15,7 +15,11 @@ const VEHICLE_OPTIONS = [
 
 const RELATION_OPTIONS = ["Parent", "Sibling", "Friend", "Partner", "Colleague", "Other"];
 
-function getToken() { return localStorage.getItem("token"); }
+function getToken() {
+  return typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
+}
 
 function formatForWhatsApp(raw) {
   let p = raw.replace(/\D/g, "");
@@ -61,12 +65,18 @@ export default function ProfileSafety() {
 
   // ── Edit mode for profile ─────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(
-    () => localStorage.getItem("profileSaved") !== "true"
+    () =>
+      typeof window !== "undefined"
+        ? localStorage.getItem("profileSaved") !== "true"
+        : true
   );
 
   // ── Edit mode for contacts ────────────────────────────────────────────────
   const [isEditingContacts, setIsEditingContacts] = useState(
-    () => localStorage.getItem("contactsSaved") !== "true"
+    () =>
+      typeof window !== "undefined"
+        ? localStorage.getItem("contactsSaved") !== "true"
+        : true
   );
 
   const [pwForm, setPwForm]       = useState({ currentPassword: "", newPassword: "", confirm: "" });
@@ -209,8 +219,9 @@ export default function ProfileSafety() {
     { id: "sos",      label: "🆘 SOS" },
   ];
 
-  const contactsSavedBefore = localStorage.getItem("contactsSaved") === "true";
-
+  const contactsSavedBefore =
+  typeof window !== "undefined" &&
+  localStorage.getItem("contactsSaved") === "true";
   return (
     <>
       <Navbar />

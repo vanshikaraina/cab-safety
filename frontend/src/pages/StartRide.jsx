@@ -14,7 +14,11 @@ import Navbar from "../components/Navbar";
 
 const TRAFFIC_MULTIPLIER = 1.4;
 
-function getToken() { return localStorage.getItem("token"); }
+function getToken() {
+  return typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
+}
 
 function MapUpdater({ center }) {
   const map = useMap();
