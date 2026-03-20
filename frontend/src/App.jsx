@@ -9,6 +9,7 @@ import LiveTracking from "./pages/LiveTracking";
 import ProfileSafety from "./pages/ProfileSafety";
 import Recordings from "./pages/Recordings";
 import SafetyMode from "./pages/SafetyMode";
+import SOSCenter from "./pages/SOSCenter";
 
 import RecordingWidget from "./components/RecordingWidget";
 import SafetyIndicator from "./components/SafetyIndicator";
@@ -29,10 +30,7 @@ function AppContent() {
     reportIssue
   } = useSafetyMode();
 
-  const token =
-  typeof window !== "undefined"
-    ? localStorage.getItem("token")
-    : null;
+  const token = localStorage.getItem("token");
 
   return (
     <BrowserRouter>
@@ -57,6 +55,7 @@ function AppContent() {
         <Route path="/recordings" element={<Recordings />} />
         <Route path="/safety-mode" element={<SafetyMode />} />
         <Route path="/rides" element={<AllRides />} />
+        <Route path="/sos" element={<SOSCenter />} />
       </Routes>
 
     </BrowserRouter>

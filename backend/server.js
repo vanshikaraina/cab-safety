@@ -8,6 +8,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import rideRoutes from "./routes/rideRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import recordingRoutes from "./routes/recordingRoutes.js";
+import sosRoutes from "./routes/sosRoutes.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rides", rideRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/recordings", recordingRoutes);
+app.use("/api/sos", sosRoutes);
 
 // serve uploaded audio
 app.use("/uploads", express.static("uploads"));

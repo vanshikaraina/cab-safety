@@ -1,3 +1,4 @@
+//navbar.jsx
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/navbar.css";
@@ -8,8 +9,8 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -23,32 +24,38 @@ function Navbar() {
     navigate("/auth");
   };
 
-  const handleNavigate = (path) => {
+  const handleNav = (path) => {
     navigate(path);
-    setMenuOpen(false); // ✅ always close menu after click
+    setMenuOpen(false);
   };
 
   return (
     <>
       <nav className="navbar">
-        
-        <div className="nav-logo" onClick={() => handleNavigate("/")}>
+
+        {/* Logo */}
+        <div className="nav-logo" onClick={() => handleNav("/")}>
           SafeRide
         </div>
 
-        {/* Hamburger */}
-        <div
-          className="hamburger"
-          onClick={() => setMenuOpen((prev) => !prev)} // ✅ safer toggle
+        {/* Hamburger — visible on mobile only */}
+        <button
+          className={`nav-toggle${menuOpen ? " open" : ""}`}
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label="Toggle navigation"
+          aria-expanded={menuOpen}
         >
-          ☰
-        </div>
+          <span />
+          <span />
+          <span />
+        </button>
 
-        <div className={`nav-links ${menuOpen ? "open" : ""}`}>
+        {/* Nav links */}
+        <div className={`nav-links${menuOpen ? " open" : ""}`}>
 
           <button
             className={isActive("/dashboard") ? "active" : ""}
-            onClick={() => handleNavigate("/dashboard")}
+            onClick={() => handleNav("/dashboard")}
           >
             Dashboard
           </button>
@@ -57,29 +64,38 @@ function Navbar() {
             className="nav-location-btn"
             onClick={() => {
               shareLiveLocation(showToast);
-              setMenuOpen(false); // ✅ fix: close menu here too
+              setMenuOpen(false);
             }}
+            title="Share Live Location"
           >
             <FaLocationDot />
           </button>
 
           <button
             className={isActive("/start-ride") ? "active" : ""}
-            onClick={() => handleNavigate("/start-ride")}
+            onClick={() => handleNav("/start-ride")}
           >
             Start Ride
           </button>
 
           <button
             className={isActive("/safety-center") ? "active" : ""}
-            onClick={() => handleNavigate("/safety-center")}
+            onClick={() => handleNav("/safety-center")}
           >
             Safety
           </button>
 
           <button
+            className={`nav-sos-btn ${isActive("/sos") ? "active" : ""}`}
+            onClick={() => handleNav("/sos")}
+            title="SOS Center"
+          >
+            🆘 SOS
+          </button>
+
+          <button
             className={isActive("/profile") ? "active" : ""}
-            onClick={() => handleNavigate("/profile")}
+            onClick={() => handleNav("/profile")}
           >
             Profile
           </button>
@@ -89,6 +105,7 @@ function Navbar() {
           </button>
 
         </div>
+
       </nav>
 
       {toast && <div className="toast">{toast}</div>}
