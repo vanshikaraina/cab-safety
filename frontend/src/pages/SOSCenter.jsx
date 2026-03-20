@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
-import "../styles/SOSCenter.css";
+import "../styles/SOScenter.css";
 
 const API = "http://localhost:5000/api";
 
