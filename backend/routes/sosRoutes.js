@@ -5,7 +5,6 @@ import SOSEvent from "../models/SOSEvent.js";
 import auth from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-
 // GET /api/sos/log — fetch SOS history for logged-in user
 router.get("/log", auth, async (req, res) => {
   try {
