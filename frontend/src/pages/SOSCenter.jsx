@@ -5,7 +5,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import "../styles/SOScenter.css";
 
-const API = "http://localhost:5000/api";
+const API = "https://cab-safety.onrender.com/api";
 
 function getToken() {
   return (
@@ -16,9 +16,12 @@ function getToken() {
     null
   );
 }
+console.log("TOKEN:", getToken());
 
 function authHeaders() {
-  return { Authorization: `Bearer ${getToken()}` };
+  const token = getToken();
+  if (!token) return {}; // 🚨 IMPORTANT
+  return { Authorization: `Bearer ${token}` };
 }
 
 // ── Status badge ───────────────────────────────────────────────
@@ -63,6 +66,7 @@ function AddContactModal({ onClose, onAdd }) {
   const [loading, setLoading] = useState(false);
 
   const relations = ["Mother", "Father", "Spouse", "Friend", "Sibling", "Other"];
+  const navigate = useNavigate();
 
   const handleSubmit = async () => {
     if (!form.name.trim()) return setError("Name is required.");
@@ -80,6 +84,7 @@ function AddContactModal({ onClose, onAdd }) {
   };
 
   return (
+    
     <div className="sos-modal-overlay" onClick={onClose}>
       <div className="sos-modal" onClick={(e) => e.stopPropagation()}>
         <div className="sos-modal-header">
@@ -95,7 +100,6 @@ function AddContactModal({ onClose, onAdd }) {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
-
           <label className="sos-label">Phone Number</label>
           <input
             className="sos-input"
@@ -190,6 +194,13 @@ export default function SOSCenter() {
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
+      const token = getToken();
+
+      if (!token) {
+        setError("Please login again.");
+        setLoading(false);
+        return;
+      }
       try {
         const [profileRes, logRes] = await Promise.all([
           axios.get(`${API}/profile`, { headers: authHeaders() }),
@@ -310,6 +321,14 @@ export default function SOSCenter() {
             <p className="sos-subtitle">
               Your emergency command hub. One tap to alert everyone who matters.
             </p>
+            
+          <button
+            className="sos-fake-call-btn" 
+            onClick={() => navigate("/fake-call")}
+          >
+            📞 Fake Call
+          </button>
+
           </div>
           <div className="sos-hero-right">
             <button

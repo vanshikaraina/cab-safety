@@ -821,3 +821,26 @@
     to   { transform: translateY(0)    scale(1);    opacity: 1; }
   }
 }
+
+.sos-fake-call-btn {
+  margin-top: 12px;
+  background: var(--sos-surface);
+  border: 1px solid var(--sos-border2);
+  border-radius: var(--radius-sm);
+  color: var(--sos-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: border-color var(--transition), color var(--transition), transform var(--transition);
+}
+
+.sos-fake-call-btn:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+  transform: translateY(-1px);
+}

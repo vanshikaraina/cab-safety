@@ -15,6 +15,7 @@ import RecordingWidget from "./components/RecordingWidget";
 import SafetyIndicator from "./components/SafetyIndicator";
 import SafetyCheckPopup from "./components/SafetyCheckPopup";
 import AllRides from "./pages/AllRides";
+import FakeCall from "./pages/FakeCall";
 
 import { RecordingProvider, useRecording } from "./context/RecordingContext";
 import { SafetyModeProvider, useSafetyMode } from "./context/SafetyModeContext";
@@ -56,6 +57,7 @@ function AppContent() {
         <Route path="/safety-mode" element={<SafetyMode />} />
         <Route path="/rides" element={<AllRides />} />
         <Route path="/sos" element={<SOSCenter />} />
+        <Route path="/fake-call" element={<FakeCall />} />
       </Routes>
 
     </BrowserRouter>
