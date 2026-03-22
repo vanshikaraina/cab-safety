@@ -223,7 +223,7 @@ export default function FakeCall() {
 
   const endCall = () => {
     clearInterval(timerRef.current);
-    navigate("/sos-center");
+    navigate("/sos");
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ export default function FakeCall() {
     return (
       <div style={styles.page}>
         <div style={styles.pickCard}>
-          <button style={styles.backBtn} onClick={() => navigate("/sos-center")}>← Back</button>
+          <button style={styles.backBtn} onClick={() => navigate("/sos")}>← Back</button>
           <div style={styles.pickIcon}>📞</div>
           <h1 style={styles.pickTitle}>Fake Call</h1>
           <p style={styles.pickSubtitle}>
@@ -328,7 +328,7 @@ export default function FakeCall() {
             <span style={{ ...styles.ringDot, animationDelay: "0.6s" }} />
           </div>
           <div style={styles.ringBtns}>
-            <button style={styles.declineBtn} onClick={() => navigate("/sos-center")}>
+            <button style={styles.declineBtn} onClick={() => navigate("/sos")}>
               <span style={styles.ringBtnIcon}>✕</span>
               <span style={styles.ringBtnLabel}>Decline</span>
             </button>
