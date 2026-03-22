@@ -9,7 +9,7 @@ const router = express.Router();
 // GET /api/sos/log — fetch SOS history for logged-in user
 router.get("/log", auth, async (req, res) => {
   try {
-    const events = await SOSEvent.find({ user: req.user.id })
+    const events = await SOSEvent.find({ user: req.userId }) // ✅ fixed
       .sort({ triggeredAt: -1 })
       .limit(50)
       .lean();
@@ -25,7 +25,7 @@ router.post("/log", auth, async (req, res) => {
   try {
     const { type, lat, lng, locationLabel, contactsAlerted, rideId } = req.body;
     const event = await SOSEvent.create({
-      user:            req.user.id,
+      user:            req.userId, // ✅ fixed
       type:            type || "manual",
       location:        { lat: lat || null, lng: lng || null },
       locationLabel:   locationLabel || null,
@@ -43,7 +43,7 @@ router.post("/log", auth, async (req, res) => {
 // DELETE /api/sos/log — clear all SOS history for the user
 router.delete("/log", auth, async (req, res) => {
   try {
-    await SOSEvent.deleteMany({ user: req.user.id });
+    await SOSEvent.deleteMany({ user: req.userId }); // ✅ fixed
     res.json({ message: "SOS history cleared." });
   } catch (err) {
     console.error("SOS log delete error:", err);
