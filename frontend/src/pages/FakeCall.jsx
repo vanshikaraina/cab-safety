@@ -102,11 +102,23 @@ export default function FakeCall() {
   const [timer, setTimer] = useState(0);
   const [sosSent, setSosSent] = useState(false);
   const [sosStatus, setSosStatus] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speechSupported, setSpeechSupported] = useState(true);
+
   const timerRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const transcriptRef = useRef("");
 
-  // scroll to bottom on new messages
+  // ── Check speech support ─────────────────────────────────────
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) setSpeechSupported(false);
+  }, []);
+
+  // scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, aiTyping]);
@@ -118,6 +130,54 @@ export default function FakeCall() {
     }
     return () => clearInterval(timerRef.current);
   }, [screen]);
+
+  // ── Speech Recognition ───────────────────────────────────────
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setTranscript("");
+      transcriptRef.current = "";
+    };
+
+    recognition.onresult = (event) => {
+      const current = Array.from(event.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setTranscript(current);
+      transcriptRef.current = current;
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      const finalText = transcriptRef.current.trim();
+      if (finalText) {
+        sendMessageText(finalText, true);
+        setTranscript("");
+        transcriptRef.current = "";
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setTranscript("");
+      transcriptRef.current = "";
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+  };
 
   // ── Auto SOS ────────────────────────────────────────────────
   const triggerAutoSOS = async () => {
@@ -148,12 +208,8 @@ export default function FakeCall() {
   const startCall = async (persona) => {
     setScreen("ringing");
     setSelectedPersona(persona);
-
-    // ringing delay
     await new Promise((r) => setTimeout(r, 2500));
     setScreen("call");
-
-    // opening message from AI
     const opening = await getAIReply(persona, [], "<<call_started>>");
     setMessages([{ role: "ai", text: opening }]);
   };
@@ -178,8 +234,7 @@ export default function FakeCall() {
         ? [{ role: "user", content: "You just called me. Say a natural opening greeting." }]
         : builtHistory;
 
-      // ✅ NEW
-      const response = await fetch("https://cab-safety.onrender.com/api/callai/chat", {
+      const response = await fetch(`${API}/callai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: openingInstruction, system: systemPrompt })
@@ -192,26 +247,35 @@ export default function FakeCall() {
     }
   };
 
-  // ── Send message ─────────────────────────────────────────────
-  const sendMessage = async () => {
-    const text = input.trim();
+  // ── Core send function ───────────────────────────────────────
+  const sendMessageText = async (text, fromVoice = false) => {
     if (!text || aiTyping) return;
-    setInput("");
 
-    const userMsg = { role: "user", text };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
+    const userMsg = { role: "user", text, fromVoice };
+    setMessages((prev) => {
+      const newMessages = [...prev, userMsg];
+      // fire AI reply with updated messages
+      fireAIReply(newMessages, text);
+      return newMessages;
+    });
 
-    // danger detection
-    if (containsDanger(text)) {
-      triggerAutoSOS();
-    }
+    if (containsDanger(text)) triggerAutoSOS();
+  };
 
+  const fireAIReply = async (currentMessages, text) => {
     setAiTyping(true);
-    const reply = await getAIReply(selectedPersona, newMessages, text);
+    const reply = await getAIReply(selectedPersona, currentMessages, text);
     setAiTyping(false);
     setMessages((prev) => [...prev, { role: "ai", text: reply }]);
     inputRef.current?.focus();
+  };
+
+  // ── Send from text input ─────────────────────────────────────
+  const sendMessage = () => {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    sendMessageText(text, false);
   };
 
   const handleKeyDown = (e) => {
@@ -223,6 +287,7 @@ export default function FakeCall() {
 
   const endCall = () => {
     clearInterval(timerRef.current);
+    recognitionRef.current?.stop();
     navigate("/sos");
   };
 
@@ -238,7 +303,7 @@ export default function FakeCall() {
           <h1 style={styles.pickTitle}>Fake Call</h1>
           <p style={styles.pickSubtitle}>
             Start a realistic conversation to stay safe in uncomfortable situations.
-            If you type a danger word, SOS is sent automatically.
+            Speak or type — danger words trigger SOS automatically.
           </p>
 
           <p style={styles.pickLabel}>Who's calling you?</p>
@@ -297,7 +362,7 @@ export default function FakeCall() {
           </div>
 
           <div style={styles.dangerNote}>
-            🛡 If you type "help", "danger", "unsafe" or similar words during the call, SOS will be sent automatically to your emergency contacts.
+            🛡 Say or type "help", "danger", "unsafe" etc. and SOS is sent automatically to your emergency contacts.
           </div>
         </div>
       </div>
@@ -332,7 +397,7 @@ export default function FakeCall() {
               <span style={styles.ringBtnIcon}>✕</span>
               <span style={styles.ringBtnLabel}>Decline</span>
             </button>
-            <button style={styles.acceptBtn} onClick={() => {}}>
+            <button style={styles.acceptBtn}>
               <span style={styles.ringBtnIcon}>📞</span>
               <span style={styles.ringBtnLabel}>Connecting…</span>
             </button>
@@ -348,6 +413,7 @@ export default function FakeCall() {
   const p = selectedPersona;
   return (
     <div style={styles.callPage}>
+
       {/* Header */}
       <div style={styles.callHeader}>
         <div style={{ ...styles.callAvatar, background: p?.color }}>
@@ -358,16 +424,12 @@ export default function FakeCall() {
           <p style={styles.callTimer}>{formatTime(timer)}</p>
         </div>
         <div style={styles.callHeaderRight}>
-          {sosSent && (
-            <span style={styles.sosBadge}>🚨 SOS</span>
-          )}
-          <button style={styles.endBtn} onClick={endCall}>
-            End Call
-          </button>
+          {sosSent && <span style={styles.sosBadge}>🚨 SOS</span>}
+          <button style={styles.endBtn} onClick={endCall}>End Call</button>
         </div>
       </div>
 
-      {/* SOS status banner */}
+      {/* SOS banner */}
       {sosStatus && (
         <div style={{
           ...styles.sosBanner,
@@ -381,13 +443,10 @@ export default function FakeCall() {
       {/* Messages */}
       <div style={styles.chatArea}>
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.msgRow,
-              justifyContent: msg.role === "user" ? "flex-end" : "flex-start"
-            }}
-          >
+          <div key={i} style={{
+            ...styles.msgRow,
+            justifyContent: msg.role === "user" ? "flex-end" : "flex-start"
+          }}>
             {msg.role === "ai" && (
               <div style={{ ...styles.msgAvatar, background: p?.color }}>
                 {p?.avatar}
@@ -396,15 +455,28 @@ export default function FakeCall() {
             <div style={{
               ...styles.bubble,
               background: msg.role === "user" ? "#1d4ed8" : "#1e293b",
-              borderRadius: msg.role === "user"
-                ? "18px 18px 4px 18px"
-                : "18px 18px 18px 4px",
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start"
+              borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px"
             }}>
+              {msg.fromVoice && <span style={{ fontSize: 11, opacity: 0.6, marginRight: 5 }}>🎤</span>}
               {msg.text}
             </div>
           </div>
         ))}
+
+        {/* Live transcript preview */}
+        {isListening && transcript && (
+          <div style={{ ...styles.msgRow, justifyContent: "flex-end" }}>
+            <div style={{
+              ...styles.bubble,
+              background: "#1e3a8a",
+              borderRadius: "18px 18px 4px 18px",
+              opacity: 0.7,
+              fontStyle: "italic"
+            }}>
+              🎤 {transcript}…
+            </div>
+          </div>
+        )}
 
         {aiTyping && (
           <div style={{ ...styles.msgRow, justifyContent: "flex-start" }}>
@@ -416,30 +488,61 @@ export default function FakeCall() {
             </div>
           </div>
         )}
+
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Listening hint */}
+      {isListening && (
+        <div style={styles.listeningHint}>
+          🔴 Listening… speak now, tap ⏹ when done
+        </div>
+      )}
+
+      {/* Input area */}
       <div style={styles.inputArea}>
         <input
           ref={inputRef}
-          style={styles.chatInput}
-          placeholder="Type your reply… (say 'help' to trigger SOS)"
+          style={{
+            ...styles.chatInput,
+            opacity: isListening ? 0.4 : 1
+          }}
+          placeholder={isListening ? "🎤 Listening..." : "Type a message..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={isListening}
         />
+
+        {/* Send button */}
         <button
           style={{
             ...styles.sendBtn,
-            opacity: input.trim() && !aiTyping ? 1 : 0.4,
-            cursor: input.trim() && !aiTyping ? "pointer" : "not-allowed"
+            opacity: input.trim() && !aiTyping && !isListening ? 1 : 0.3,
+            cursor: input.trim() && !aiTyping && !isListening ? "pointer" : "not-allowed"
           }}
           onClick={sendMessage}
-          disabled={!input.trim() || aiTyping}
+          disabled={!input.trim() || aiTyping || isListening}
         >
           ➤
         </button>
+
+        {/* Mic button */}
+        {speechSupported && (
+          <button
+            style={{
+              ...styles.micBtn,
+              background: isListening ? "#dc2626" : "#1e293b",
+              border: `2px solid ${isListening ? "#ef4444" : "#334155"}`,
+              transform: isListening ? "scale(1.12)" : "scale(1)"
+            }}
+            onClick={isListening ? stopListening : startListening}
+            disabled={aiTyping}
+            title={isListening ? "Stop" : "Speak"}
+          >
+            {isListening ? "⏹" : "🎤"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -538,7 +641,8 @@ const styles = {
     color: "#fff",
     fontWeight: 700,
     fontSize: 14,
-    padding: "10px 20px"
+    padding: "10px 20px",
+    cursor: "pointer"
   },
   dangerNote: {
     background: "#1c0a0a",
@@ -549,8 +653,6 @@ const styles = {
     padding: "12px 14px",
     lineHeight: 1.6
   },
-
-  // ringing
   ringPage: {
     minHeight: "100vh",
     background: "#050810",
@@ -573,8 +675,7 @@ const styles = {
     borderRadius: "50%",
     background: "rgba(99,102,241,0.15)",
     animation: "pulse 1.5s ease-out infinite",
-    top: "50%",
-    left: "50%",
+    top: "50%", left: "50%",
     transform: "translate(-50%,-50%)"
   },
   ringPulse2: {
@@ -584,29 +685,21 @@ const styles = {
     borderRadius: "50%",
     background: "rgba(99,102,241,0.07)",
     animation: "pulse 1.5s ease-out infinite 0.4s",
-    top: "50%",
-    left: "50%",
+    top: "50%", left: "50%",
     transform: "translate(-50%,-50%)"
   },
   ringAvatar: {
-    width: 80,
-    height: 80,
+    width: 80, height: 80,
     borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 32,
-    fontWeight: 700,
-    color: "#fff",
-    position: "relative",
-    zIndex: 1
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 32, fontWeight: 700, color: "#fff",
+    position: "relative", zIndex: 1
   },
   ringName: { color: "#f1f5f9", fontSize: 28, fontWeight: 700, margin: "8px 0 4px" },
   ringSubtitle: { color: "#64748b", fontSize: 14, margin: 0 },
   ringDots: { display: "flex", gap: 6, margin: "12px 0 32px" },
   ringDot: {
-    width: 6,
-    height: 6,
+    width: 6, height: 6,
     borderRadius: "50%",
     background: "#475569",
     display: "inline-block",
@@ -614,34 +707,17 @@ const styles = {
   },
   ringBtns: { display: "flex", gap: 40 },
   declineBtn: {
-    background: "#dc2626",
-    border: "none",
-    borderRadius: "50%",
-    width: 64,
-    height: 64,
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2
+    background: "#dc2626", border: "none", borderRadius: "50%",
+    width: 64, height: 64, cursor: "pointer",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2
   },
   acceptBtn: {
-    background: "#16a34a",
-    border: "none",
-    borderRadius: "50%",
-    width: 64,
-    height: 64,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2
+    background: "#16a34a", border: "none", borderRadius: "50%",
+    width: 64, height: 64,
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2
   },
   ringBtnIcon: { fontSize: 20 },
   ringBtnLabel: { fontSize: 10, color: "#fff" },
-
-  // call screen
   callPage: {
     minHeight: "100vh",
     background: "#050810",
@@ -652,132 +728,89 @@ const styles = {
     margin: "0 auto"
   },
   callHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
+    display: "flex", alignItems: "center", gap: 12,
     padding: "16px 20px",
     background: "#0a0d16",
     borderBottom: "1px solid #1e2230"
   },
   callAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 18,
-    fontWeight: 700,
-    color: "#fff",
-    flexShrink: 0
+    width: 44, height: 44, borderRadius: "50%",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 18, fontWeight: 700, color: "#fff", flexShrink: 0
   },
   callHeaderInfo: { flex: 1 },
   callName: { color: "#f1f5f9", fontSize: 16, fontWeight: 700, margin: 0 },
   callTimer: { color: "#22c55e", fontSize: 13, margin: 0 },
   callHeaderRight: { display: "flex", alignItems: "center", gap: 10 },
   sosBadge: {
-    background: "#450a0a",
-    border: "1px solid #dc2626",
-    borderRadius: 20,
-    color: "#fca5a5",
-    fontSize: 11,
-    fontWeight: 700,
-    padding: "3px 10px"
+    background: "#450a0a", border: "1px solid #dc2626",
+    borderRadius: 20, color: "#fca5a5",
+    fontSize: 11, fontWeight: 700, padding: "3px 10px"
   },
   endBtn: {
-    background: "#dc2626",
-    border: "none",
-    borderRadius: 20,
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: 600,
-    padding: "7px 16px",
-    cursor: "pointer"
+    background: "#dc2626", border: "none", borderRadius: 20,
+    color: "#fff", fontSize: 13, fontWeight: 600,
+    padding: "7px 16px", cursor: "pointer"
   },
   sosBanner: {
-    padding: "10px 20px",
-    border: "1px solid",
-    color: "#f1f5f9",
-    fontSize: 13,
-    fontWeight: 600,
-    textAlign: "center"
+    padding: "10px 20px", border: "1px solid",
+    color: "#f1f5f9", fontSize: 13, fontWeight: 600, textAlign: "center"
   },
   chatArea: {
-    flex: 1,
-    overflowY: "auto",
+    flex: 1, overflowY: "auto",
     padding: "20px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 12
+    display: "flex", flexDirection: "column", gap: 12
   },
-  msgRow: {
-    display: "flex",
-    alignItems: "flex-end",
-    gap: 8
-  },
+  msgRow: { display: "flex", alignItems: "flex-end", gap: 8 },
   msgAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#fff",
-    flexShrink: 0
+    width: 30, height: 30, borderRadius: "50%",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0
   },
   bubble: {
-    maxWidth: "72%",
-    padding: "10px 14px",
-    color: "#f1f5f9",
-    fontSize: 14,
-    lineHeight: 1.5
+    maxWidth: "72%", padding: "10px 14px",
+    color: "#f1f5f9", fontSize: 14, lineHeight: 1.5
   },
   typingBubble: {
     background: "#1e293b",
     borderRadius: "18px 18px 18px 4px",
     padding: "12px 16px",
-    display: "flex",
-    gap: 5,
-    alignItems: "center"
+    display: "flex", gap: 5, alignItems: "center"
   },
   typingDot: {
-    width: 7,
-    height: 7,
-    borderRadius: "50%",
-    background: "#64748b",
-    display: "inline-block",
+    width: 7, height: 7, borderRadius: "50%",
+    background: "#64748b", display: "inline-block",
     animation: "blink 1s infinite"
   },
-  inputArea: {
-    display: "flex",
-    gap: 10,
-    padding: "14px 16px",
-    borderTop: "1px solid #1e2230",
+  listeningHint: {
+    textAlign: "center", fontSize: 12,
+    color: "#ef4444", padding: "6px 0 4px",
     background: "#0a0d16"
   },
+  inputArea: {
+    display: "flex", gap: 10,
+    padding: "14px 16px",
+    borderTop: "1px solid #1e2230",
+    background: "#0a0d16",
+    alignItems: "center"
+  },
   chatInput: {
-    flex: 1,
-    background: "#161b27",
+    flex: 1, background: "#161b27",
     border: "1px solid #1e2230",
-    borderRadius: 24,
-    color: "#f1f5f9",
-    padding: "11px 18px",
-    fontSize: 14,
-    outline: "none"
+    borderRadius: 24, color: "#f1f5f9",
+    padding: "11px 18px", fontSize: 14, outline: "none",
+    transition: "opacity 0.2s"
   },
   sendBtn: {
-    background: "#1d4ed8",
-    border: "none",
-    borderRadius: "50%",
-    width: 44,
-    height: 44,
-    color: "#fff",
-    fontSize: 16,
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
+    background: "#1d4ed8", border: "none", borderRadius: "50%",
+    width: 44, height: 44, color: "#fff", fontSize: 16,
+    flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer"
+  },
+  micBtn: {
+    width: 44, height: 44, borderRadius: "50%",
+    flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 18, cursor: "pointer",
+    transition: "all 0.2s ease"
   }
 };
