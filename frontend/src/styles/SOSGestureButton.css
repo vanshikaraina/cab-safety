@@ -1,0 +1,159 @@
+/* ── SOSGestureButton.css ── */
+
+/* Floating pill button */
+.sgb-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(30, 30, 35, 0.85);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  z-index: 9999;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 0.18s, border-color 0.18s, transform 0.12s;
+  white-space: nowrap;
+}
+
+.sgb-fab:hover {
+  background: rgba(45, 45, 52, 0.95);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.sgb-fab:active {
+  transform: scale(0.95);
+}
+
+.sgb-fab-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.sgb-fab-label {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* Fullscreen overlay */
+.sgb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.93);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: sgb-fade-in 0.18s ease;
+}
+
+@keyframes sgb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Canvas wrapper */
+.sgb-canvas-wrap {
+  position: relative;
+}
+
+/* Ghost S guide */
+.sgb-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.08;
+}
+
+/* The canvas itself */
+.sgb-canvas {
+  width: 320px;
+  height: 420px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  touch-action: none;
+  cursor: crosshair;
+  display: block;
+  transition: border-color 0.2s;
+}
+
+.sgb-canvas:active {
+  border-color: rgba(231, 76, 60, 0.4);
+}
+
+/* Hint text */
+.sgb-hint {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 13px;
+  margin-top: 18px;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+/* Result message */
+.sgb-result {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 10px;
+  min-height: 24px;
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.sgb-result.success { color: #2ecc71; }
+.sgb-result.error   { color: #e74c3c; }
+.sgb-result.empty   { color: transparent; }
+
+/* Action buttons row */
+.sgb-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.sgb-btn-clear {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 8px;
+  transition: color 0.15s;
+}
+
+.sgb-btn-clear:hover {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sgb-btn-cancel {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  padding: 9px 32px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sgb-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}

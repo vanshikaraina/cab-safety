@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import "../styles/SOScenter.css";
+import SOSGestureButton from "../components/SOSGestureButton";
+
 
 const API = "https://cab-safety.onrender.com/api";
 
@@ -302,6 +304,7 @@ export default function SOSCenter() {
   if (error) return (
     <>
       <Navbar />
+      
       <div className="sos-page">
         <div className="sos-error">⚠ {error}</div>
       </div>
@@ -463,7 +466,7 @@ export default function SOSCenter() {
         )}
 
       </div>
-
+      <SOSGestureButton onSOSTriggered={handleSOS} />
       {showAddModal && (
         <AddContactModal
           onClose={() => setShowAddModal(false)}
