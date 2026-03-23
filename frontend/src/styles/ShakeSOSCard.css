@@ -1,0 +1,290 @@
+/* src/styles/ShakeSOSCard.css
+   Mobile-first, thumb-reachable Shake SOS card
+   BEM-lite: .ssc = ShakeSOSCard root
+*/
+
+/* ── Root card ─────────────────────────────────────────────────────────── */
+.ssc {
+  position: relative;
+  background: #111318;
+  border: 1.5px solid #2a2d36;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Armed state: glowing red border */
+.ssc--armed {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.18), 0 4px 24px rgba(229,62,62,0.12);
+  background: #120d0d;
+}
+
+/* Unavailable / denied muted */
+.ssc--unavailable,
+.ssc--denied {
+  opacity: 0.72;
+}
+
+/* Subtle background pulse when armed */
+.ssc--armed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(229,62,62,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: ssc-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes ssc-glow {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1;   }
+}
+
+/* ── Top row ────────────────────────────────────────────────────────────── */
+.ssc__toprow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* Icon wrap */
+.ssc__iconwrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: #1e2028;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: background 0.3s;
+}
+.ssc__iconwrap--armed {
+  background: rgba(229, 62, 62, 0.18);
+}
+
+/* Pulsing ring around icon when armed */
+.ssc__iconring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  border: 2px solid rgba(229, 62, 62, 0.5);
+  animation: ssc-ring 1.6s ease-in-out infinite;
+}
+@keyframes ssc-ring {
+  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  50%       { transform: scale(1.1); opacity: 0.3; }
+}
+
+/* Labels */
+.ssc__labels {
+  flex: 1;
+  min-width: 0;
+}
+.ssc__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0 0 3px;
+  letter-spacing: 0.01em;
+}
+.ssc__sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Status chips */
+.ssc__chip {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.ssc__chip--na       { background: #1e2028; color: #6b7280; }
+.ssc__chip--denied   { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid #ef4444; }
+.ssc__chip--checking { background: #1e2028; color: #9ca3af; }
+.ssc__chip--live {
+  background: rgba(229,62,62,0.18);
+  color: #f87171;
+  border: 1px solid rgba(229,62,62,0.4);
+  animation: ssc-livepulse 1.2s ease-in-out infinite;
+}
+@keyframes ssc-livepulse {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.6; }
+}
+
+/* ── Progress dots ──────────────────────────────────────────────────────── */
+.ssc__dots {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.ssc__dot {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1e2028;
+  border: 2px solid #2a2d36;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.ssc__dot--armed {
+  border-color: #3a1a1a;
+}
+.ssc__dot--active {
+  background: #e53e3e;
+  border-color: #e53e3e;
+  transform: scale(1.2);
+}
+
+/* Ring pulse on active dot */
+.ssc__dotpulse {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid rgba(229,62,62,0.4);
+  animation: ssc-dotpulse 0.6s ease-out forwards;
+}
+@keyframes ssc-dotpulse {
+  0%   { transform: scale(0.8); opacity: 1;   }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+
+.ssc__dotlabel {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+/* ── BIG ARM / DISARM BUTTON ────────────────────────────────────────────── */
+/*
+  This is the primary interaction. Extra tall (56 px min), full-width,
+  thumb-reachable, impossible to miss under stress.
+*/
+.ssc__armBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.ssc__armBtn:active {
+  transform: scale(0.97);
+  opacity: 0.88;
+}
+
+/* Arm button — red, urgent */
+.ssc__armBtn--arm {
+  background: linear-gradient(135deg, #c53030 0%, #e53e3e 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(229,62,62,0.35);
+}
+.ssc__armBtn--arm:hover {
+  box-shadow: 0 6px 28px rgba(229,62,62,0.5);
+}
+
+/* Ripple effect on arm button */
+.ssc__armBtn--arm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.06);
+  border-radius: inherit;
+}
+
+/* Disarm button — muted gray/green, lower urgency */
+.ssc__armBtn--disarm {
+  background: #1e2028;
+  color: #9ca3af;
+  border: 1.5px solid #2a2d36;
+  box-shadow: none;
+}
+.ssc__armBtn--disarm:hover {
+  border-color: #3a3d4a;
+  color: #d1d5db;
+}
+
+.ssc__armBtn-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.ssc__armBtn-text {
+  line-height: 1;
+}
+
+/* ── Standalone permission button (iOS only, shown below arm btn) ────────── */
+.ssc__permBtn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  background: none;
+  border: 1.5px dashed #374151;
+  border-radius: 10px;
+  color: #9ca3af;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+.ssc__permBtn:hover,
+.ssc__permBtn:active {
+  border-color: #6b7280;
+  color: #d1d5db;
+}
+
+/* ── Denied / unavailable notes ─────────────────────────────────────────── */
+.ssc__deniedNote,
+.ssc__unavailNote {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ssc__deniedNote {
+  background: rgba(239,68,68,0.08);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.ssc__unavailNote {
+  background: #1e2028;
+  color: #6b7280;
+}
+
+/* ── Armed tip ──────────────────────────────────────────────────────────── */
+.ssc__tip {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  background: rgba(229,62,62,0.07);
+  border: 1px solid rgba(229,62,62,0.2);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #fca5a5;
+  line-height: 1.6;
+}

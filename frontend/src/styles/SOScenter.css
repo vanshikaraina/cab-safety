@@ -844,3 +844,27 @@
   color: #86efac;
   transform: translateY(-1px);
 }
+
+.sos-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sos-stop-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 100px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.sos-stop-btn:hover {
+  background: rgba(255,255,255,0.25);
+}

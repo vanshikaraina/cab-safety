@@ -1,0 +1,85 @@
+/* src/styles/LiveLocationCard.css */
+
+.loc-card {
+  background: #0e1420;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.loc-card-active {
+  border-color: rgba(59,130,246,0.45);
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.08), 0 4px 24px rgba(59,130,246,0.08);
+}
+
+/* Header */
+.loc-header { display: flex; align-items: center; gap: 14px; }
+
+.loc-icon-wrap {
+  width: 42px; height: 42px; border-radius: 10px; position: relative;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0; transition: background 0.25s, border-color 0.25s;
+}
+.loc-card-active .loc-icon-wrap { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); }
+
+/* Live pulse dot */
+.loc-live-dot {
+  position: absolute; top: 4px; right: 4px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 6px #22c55e;
+  animation: loc-pulse 1.6s ease-in-out infinite;
+}
+@keyframes loc-pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.5);opacity:0.5;} }
+
+.loc-info { flex: 1; min-width: 0; }
+.loc-title { font-size: 14px; font-weight: 600; color: #e8edf5; margin: 0 0 3px; }
+.loc-desc  { font-size: 12.5px; color: #64748b; margin: 0; }
+
+/* Toggle buttons */
+.loc-toggle-btn {
+  padding: 7px 16px; border-radius: 100px; border: 1px solid;
+  font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.loc-toggle-start { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.35); color: #93c5fd; }
+.loc-toggle-start:hover { background: rgba(59,130,246,0.2); }
+.loc-toggle-stop  { background: rgba(239,68,68,0.1);   border-color: rgba(239,68,68,0.35);  color: #fca5a5; }
+.loc-toggle-stop:hover  { background: rgba(239,68,68,0.2); }
+
+/* States */
+.loc-error {
+  font-size: 12.5px; color: #fca5a5; margin: 12px 0 0;
+  padding: 9px 12px; background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2); border-radius: 8px;
+}
+.loc-loading {
+  font-size: 12.5px; color: #64748b; margin: 12px 0 0;
+  padding: 9px 12px; background: rgba(255,255,255,0.03);
+  border-radius: 8px; text-align: center;
+}
+
+/* Actions */
+.loc-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.loc-preview {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 10px; color: #93c5fd; font-size: 13px;
+  text-decoration: none; font-variant-numeric: tabular-nums;
+  transition: background 0.2s; gap: 10px;
+}
+.loc-preview:hover { background: rgba(59,130,246,0.12); }
+.loc-preview-open  { font-size: 11px; color: #64748b; white-space: nowrap; flex-shrink: 0; }
+
+.loc-btns { display: flex; gap: 10px; }
+.loc-btn {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.loc-btn-copy  { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); color: #94a3b8; }
+.loc-btn-copy:hover  { background: rgba(255,255,255,0.08); }
+.loc-btn-share { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #93c5fd; }
+.loc-btn-share:hover { background: rgba(59,130,246,0.2); }
