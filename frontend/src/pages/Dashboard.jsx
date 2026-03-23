@@ -162,7 +162,7 @@ export default function Dashboard() {
               <span className="db-action-label">Safety Center</span>
               <span className="db-action-arrow">→</span>
             </button>
-            <button className="db-action-card db-action-sos" onClick={() => navigate("/profile#sos")}>
+            <button className="db-action-card db-action-sos" onClick={() => navigate("/sos")}>
               <span className="db-action-icon">🆘</span>
               <span className="db-action-label">SOS</span>
               <span className="db-action-arrow">→</span>
