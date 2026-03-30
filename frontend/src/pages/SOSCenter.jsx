@@ -14,9 +14,9 @@ import useVolumeButtonSOS from "../hooks/useVolumeButtonSOS";
 import useShakeSOS        from "../hooks/useShakeSOS";
 import useCountdownSOS    from "../hooks/useCountdownSOS";
 
-import "../styles/SOScenter.css";
+import "../styles/SOSCenter.css";
 
-const API = "https://cab-safety.onrender.com/api";
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 function getToken() {
   return (
