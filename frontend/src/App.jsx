@@ -14,6 +14,7 @@ import SOSCenter from "./pages/SOSCenter";
 import RecordingWidget from "./components/RecordingWidget";
 import SafetyIndicator from "./components/SafetyIndicator";
 import SafetyCheckPopup from "./components/SafetyCheckPopup";
+import EmergencyContacts from "./components/EmergencyContacts";
 import AllRides from "./pages/AllRides";
 import FakeCall from "./pages/FakeCall";
 import Layout from "./pages/Layout";
@@ -63,6 +64,7 @@ function AppContent() {
           <Route path="/rides" element={<AllRides />} />
           <Route path="/sos" element={<SOSCenter />} />
           <Route path="/fake-call" element={<FakeCall />} />
+          <Route path="/emergency-contacts" element={<EmergencyContacts />} />
         </Route>
       </Routes>
 

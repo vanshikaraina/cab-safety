@@ -30,7 +30,7 @@ const SafetyCenter = () => {
   };
 
   const handleContacts = () => {
-    showToast("👨‍👩‍👧 Open Emergency Contacts");
+    navigate("/emergency-contacts");
   };
 
   const handleSOS = () => {
