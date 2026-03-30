@@ -500,7 +500,7 @@ export default function LiveTracking() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="lt-page">
         {nightMode   && <div className="lt-banner lt-banner-night">🌙 Night ride in progress — stay alert and ride safely</div>}
         {batteryWarn && <div className="lt-banner lt-banner-battery">🔋 Low battery — your live location may stop updating soon</div>}

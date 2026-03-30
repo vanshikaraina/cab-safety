@@ -42,7 +42,7 @@ export default function AllRides() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
 
       <div className="db-container">
         <button

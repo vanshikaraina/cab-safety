@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="db-container db-loading">
         <div className="db-spinner" />
         <p>Loading your dashboard…</p>
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
   if (error) return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="db-container db-loading">
         <p style={{ color: "#fca5a5" }}>{error}</p>
       </div>
@@ -80,7 +80,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="db-container">
 
         {/* ── Welcome Banner ── */}

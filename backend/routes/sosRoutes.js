@@ -7,11 +7,18 @@ const router = express.Router();
 
 // GET /api/sos/log — fetch SOS history for logged-in user
 router.get("/log", auth, async (req, res) => {
+  console.log("USER:", req.user);
+
+  if (!req.user) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
+
   try {
     const events = await SOSEvent.find({ user: req.user.id })
       .sort({ triggeredAt: -1 })
       .limit(50)
       .lean();
+
     res.json(events);
   } catch (err) {
     console.error("SOS log fetch error:", err);

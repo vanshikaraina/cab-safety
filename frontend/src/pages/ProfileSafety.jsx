@@ -224,7 +224,7 @@ export default function ProfileSafety() {
   localStorage.getItem("contactsSaved") === "true";
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="ps-container">
 
         {/* ── Header ── */}

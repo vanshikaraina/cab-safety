@@ -16,6 +16,7 @@ import SafetyIndicator from "./components/SafetyIndicator";
 import SafetyCheckPopup from "./components/SafetyCheckPopup";
 import AllRides from "./pages/AllRides";
 import FakeCall from "./pages/FakeCall";
+import Layout from "./pages/Layout";
 
 import { RecordingProvider, useRecording } from "./context/RecordingContext";
 import { SafetyModeProvider, useSafetyMode } from "./context/SafetyModeContext";
@@ -46,18 +47,23 @@ function AppContent() {
       />
 
       <Routes>
+        {/* routes WITHOUT navbar */}
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/start-ride" element={<StartRide />} />
-        <Route path="/tracking/:rideId" element={<LiveTracking />} />
-        <Route path="/profile" element={<ProfileSafety />} />
-        <Route path="/safety-center" element={<SafetyCenter />} />
-        <Route path="/recordings" element={<Recordings />} />
-        <Route path="/safety-mode" element={<SafetyMode />} />
-        <Route path="/rides" element={<AllRides />} />
-        <Route path="/sos" element={<SOSCenter />} />
-        <Route path="/fake-call" element={<FakeCall />} />
+
+        {/* routes WITH navbar */}
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/start-ride" element={<StartRide />} />
+          <Route path="/tracking/:rideId" element={<LiveTracking />} />
+          <Route path="/profile" element={<ProfileSafety />} />
+          <Route path="/safety-center" element={<SafetyCenter />} />
+          <Route path="/recordings" element={<Recordings />} />
+          <Route path="/safety-mode" element={<SafetyMode />} />
+          <Route path="/rides" element={<AllRides />} />
+          <Route path="/sos" element={<SOSCenter />} />
+          <Route path="/fake-call" element={<FakeCall />} />
+        </Route>
       </Routes>
 
     </BrowserRouter>

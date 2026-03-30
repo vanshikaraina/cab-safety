@@ -290,7 +290,7 @@ function StartRide() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
 
       {/* ── TOP STEPS BAR ── */}
       <div className="ride-steps-bar">

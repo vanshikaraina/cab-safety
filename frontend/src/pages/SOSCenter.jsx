@@ -335,7 +335,7 @@ export default function SOSCenter() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       <div className="sos-page">
 
         <SOSConfirmation trigger={sosConfirm} onDismiss={() => setSosConfirm(null)} />
