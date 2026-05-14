@@ -35,7 +35,7 @@ function Navbar() {
 
         {/* Logo */}
         <div className="nav-logo" onClick={() => handleNav("/")}>
-          SafeRide
+          RideSafe
         </div>
 
         {/* Hamburger — visible on mobile only */}

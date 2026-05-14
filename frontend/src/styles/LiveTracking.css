@@ -612,3 +612,207 @@ body {
 
 .lt-timeline-start .lt-timeline-label { color: #10b981; font-weight: 600; }
 .lt-timeline-dest  .lt-timeline-label { color: #818cf8; font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PASTE THESE ADDITIONS INTO YOUR EXISTING LiveTracking.css
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Route Switcher pill bar ─────────────────────────────────────────────── */
+.lt-route-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  margin: 0 0 12px 0;
+}
+.lt-route-switcher::-webkit-scrollbar { display: none; }
+
+.lt-route-switcher-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.lt-route-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  color: #9ca3af;
+  font-size: 13px;
+  position: relative;
+}
+.lt-route-pill:hover {
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.08);
+  color: #f59e0b;
+}
+.lt-route-pill-active {
+  border-color: #f59e0b;
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+  font-weight: 600;
+}
+.lt-route-pill-num {
+  font-weight: 700;
+  font-size: 12px;
+}
+.lt-route-pill-meta {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.lt-route-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+
+/* ── AI Deviation Modal extensions ──────────────────────────────────────── */
+.lt-modal-deviation {
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.lt-ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.lt-ai-alert-box {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.lt-ai-alert-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.lt-ai-reason,
+.lt-ai-safety-tip {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.lt-ai-reason p,
+.lt-ai-safety-tip p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #d1d5db;
+  line-height: 1.45;
+}
+.lt-ai-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+}
+
+.lt-ai-route-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.lt-ai-route-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+  color: #d1d5db;
+}
+.lt-ai-route-btn:hover {
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.08);
+}
+.lt-ai-route-active {
+  border-color: rgba(99,102,241,0.5);
+  background: rgba(99,102,241,0.1);
+}
+.lt-ai-route-suggested {
+  border-color: rgba(245,158,11,0.6) !important;
+  background: rgba(245,158,11,0.1) !important;
+}
+.lt-ai-route-num {
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 50px;
+}
+.lt-ai-route-meta {
+  font-size: 12px;
+  opacity: 0.7;
+  flex: 1;
+}
+.lt-ai-route-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.lt-tag-current {
+  background: rgba(99,102,241,0.25);
+  color: #a5b4fc;
+}
+.lt-tag-ai {
+  background: rgba(245,158,11,0.25);
+  color: #fcd34d;
+}
+
+.lt-modal-dismiss {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.lt-modal-dismiss:hover {
+  background: rgba(255,255,255,0.1);
+  color: #e5e7eb;
+}

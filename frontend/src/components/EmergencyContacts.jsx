@@ -1,162 +1,221 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const API = "https://cab-safety.onrender.com/api";
 
 const getRelationEmoji = (relation) => {
   const map = {
-    mother: "👩", father: "👨", sister: "👧", brother: "👦",
-    wife: "💑", husband: "💑", friend: "🧑", doctor: "🩺",
+    mother: "👩", parent: "👨", sister: "👧", sibling: "👦",
+    wife: "💑", husband: "💑", friend: "🤝", doctor: "🩺",
   };
   return map[relation?.toLowerCase()] || "👤";
 };
 
-const styles = {
-  container: {
-    padding: "28px 24px",
-    maxWidth: "480px",
-    margin: "0 auto",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    background: "#0d0d0d",
-    minHeight: "100vh",
-  },
-  title: {
-    fontFamily: "'Sora', 'Segoe UI', sans-serif",
-    fontSize: "1.6rem",
-    fontWeight: 700,
-    color: "#ffffff",
-    marginBottom: "24px",
-    letterSpacing: "-0.5px",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  loadingState: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    color: "#888",
-    fontSize: "0.95rem",
-    padding: "40px 0",
-    justifyContent: "center",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "60px 20px",
-    color: "#555",
-    fontSize: "0.95rem",
-  },
-  emptyIcon: {
-    fontSize: "3rem",
-    display: "block",
-    marginBottom: "12px",
-    opacity: 0.4,
-  },
-  contactsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  card: {
-    background: "#1a1a1a",
-    border: "1px solid #2a2a2a",
-    borderRadius: "16px",
-    padding: "18px 20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "16px",
-    transition: "border-color 0.2s ease, transform 0.15s ease",
-  },
-  avatar: {
-    width: "46px",
-    height: "46px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #ff4d4d22, #ff4d4d44)",
-    border: "1.5px solid #ff4d4d55",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1.2rem",
-    flexShrink: 0,
-  },
-  contactInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  name: {
-    fontFamily: "'Sora', 'Segoe UI', sans-serif",
-    fontSize: "1rem",
-    fontWeight: 600,
-    color: "#f0f0f0",
-    margin: "0 0 4px 0",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-  phone: {
-    fontSize: "0.85rem",
-    color: "#888",
-    margin: "0 0 3px 0",
-    letterSpacing: "0.3px",
-  },
-  relationBadge: {
-    display: "inline-block",
-    fontSize: "0.72rem",
-    fontWeight: 500,
-    color: "#ff4d4d",
-    background: "#ff4d4d18",
-    border: "1px solid #ff4d4d33",
-    borderRadius: "20px",
-    padding: "2px 10px",
-    textTransform: "uppercase",
-    letterSpacing: "0.6px",
-    marginTop: "2px",
-  },
-  callLink: {
-    textDecoration: "none",
-    flexShrink: 0,
-  },
-  callBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    background: "#ff4d4d",
-    color: "#fff",
-    border: "none",
-    borderRadius: "12px",
-    padding: "10px 16px",
-    fontFamily: "'Sora', 'Segoe UI', sans-serif",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    letterSpacing: "0.3px",
-    boxShadow: "0 4px 14px #ff4d4d33",
-  },
-};
-
-// Injects keyframes + hover/animation classes once into <head>
 const injectStyles = () => {
-  if (document.getElementById("ec-styles")) return;
+  if (document.getElementById("ec-scoped-styles")) return;
   const tag = document.createElement("style");
-  tag.id = "ec-styles";
+  tag.id = "ec-scoped-styles";
   tag.innerHTML = `
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
-    @keyframes ecSlideIn {
-      from { opacity: 0; transform: translateY(12px); }
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
+
+    .ec-container {
+      padding: 72px 24px 60px;
+      max-width: 520px;
+      margin: 0 auto;
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(160deg, #080c14 0%, #0d1520 55%, #111827 100%);
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+
+    .ec-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      margin-bottom: 28px;
+      padding: 4px 0;
+      transition: color 0.18s, transform 0.18s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .ec-back-btn:hover { color: #cbd5e1; transform: translateX(-3px); }
+
+    .ec-header { margin-bottom: 32px; }
+
+    .ec-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0 0 4px;
+    }
+
+    .ec-subtitle {
+      font-size: 13px;
+      color: #475569;
+      margin: 0;
+    }
+
+    .ec-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 2px 10px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* Loading */
+    .ec-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #475569;
+      font-size: 14px;
+      padding: 80px 0;
+    }
+
+    @keyframes ec-pulse {
+      0%, 100% { opacity: 0.2; transform: scale(0.75); }
+      50%       { opacity: 1;   transform: scale(1.2); }
+    }
+    .ec-dot {
+      width: 7px; height: 7px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: ec-pulse 1.2s ease-in-out infinite;
+      display: inline-block;
+    }
+    .ec-dot:nth-child(2) { animation-delay: 0.2s; }
+    .ec-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Empty */
+    .ec-empty {
+      text-align: center;
+      padding: 80px 20px;
+      color: #334155;
+    }
+    .ec-empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; opacity: 0.35; }
+    .ec-empty-text { font-size: 14px; }
+
+    /* List */
+    .ec-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Card */
+    @keyframes ec-slideIn {
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes ecPulse {
-      0%,100% { opacity:0.3; transform:scale(0.8); }
-      50%      { opacity:1;   transform:scale(1.2); }
+
+    .ec-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 16px 18px;
+      animation: ec-slideIn 0.3s ease both;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s, box-shadow 0.15s;
     }
-    .ec-card { animation: ecSlideIn 0.3s ease both; }
-    .ec-card:hover { border-color: #ff4d4d44 !important; transform: translateY(-2px); }
-    .ec-call-btn:hover { background: #ff3333 !important; transform: scale(1.05); box-shadow: 0 6px 20px #ff4d4d55 !important; }
+    .ec-card:hover {
+      background: rgba(255,255,255,0.055);
+      border-color: rgba(239, 68, 68, 0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Avatar */
+    .ec-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1.5px solid rgba(239, 68, 68, 0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    /* Info */
+    .ec-info { flex: 1; min-width: 0; }
+
+    .ec-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: #f1f5f9;
+      margin: 0 0 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ec-phone {
+      font-size: 13px;
+      color: #64748b;
+      margin: 0 0 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .ec-relation {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 20px;
+      padding: 2px 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    /* Call button */
+    .ec-call-link { text-decoration: none; flex-shrink: 0; }
+
+    .ec-call-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s, box-shadow 0.15s;
+    }
+    .ec-call-btn:hover {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: rgba(239, 68, 68, 0.5);
+      transform: scale(1.04);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+    }
     .ec-call-btn:active { transform: scale(0.97); }
-    .ec-dot { width:8px; height:8px; background:#ff4d4d; border-radius:50%; animation: ecPulse 1.2s ease-in-out infinite; display:inline-block; }
-    .ec-dot:nth-child(2){ animation-delay:.2s }
-    .ec-dot:nth-child(3){ animation-delay:.4s }
+
+    @media (max-width: 480px) {
+      .ec-container { padding: 56px 16px 48px; }
+      .ec-call-btn { padding: 9px 12px; font-size: 12px; }
+    }
   `;
   document.head.appendChild(tag);
 };
@@ -164,6 +223,7 @@ const injectStyles = () => {
 const EmergencyContacts = () => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const getToken = () => localStorage.getItem("token");
 
@@ -186,8 +246,8 @@ const EmergencyContacts = () => {
 
   if (loading)
     return (
-      <div style={styles.container}>
-        <div style={styles.loadingState}>
+      <div className="ec-container">
+        <div className="ec-loading">
           <span className="ec-dot" />
           <span className="ec-dot" />
           <span className="ec-dot" />
@@ -197,38 +257,46 @@ const EmergencyContacts = () => {
     );
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>
-        <span>🚨</span> Emergency Contacts
-      </h2>
+    <div className="ec-container">
+      <button className="ec-back-btn" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
+      <div className="ec-header">
+        <h2 className="ec-title">
+          Emergency Contacts
+          {contacts.length > 0 && (
+            <span className="ec-count-badge">{contacts.length}</span>
+          )}
+        </h2>
+        <p className="ec-subtitle">Your trusted people in an emergency</p>
+      </div>
 
       {contacts.length === 0 ? (
-        <div style={styles.emptyState}>
-          <span style={styles.emptyIcon}>👥</span>
-          No contacts added yet
+        <div className="ec-empty">
+          <span className="ec-empty-icon">👥</span>
+          <span className="ec-empty-text">No contacts added yet</span>
         </div>
       ) : (
-        <div style={styles.contactsList}>
+        <div className="ec-list">
           {contacts.map((c, i) => (
             <div
               key={i}
               className="ec-card"
-              style={{ ...styles.card, animationDelay: `${i * 0.05}s` }}
+              style={{ animationDelay: `${i * 0.06}s` }}
             >
-              <div style={styles.avatar}>{getRelationEmoji(c.relation)}</div>
+              <div className="ec-avatar">{getRelationEmoji(c.relation)}</div>
 
-              <div style={styles.contactInfo}>
-                <p style={styles.name}>{c.name}</p>
-                <p style={styles.phone}>{c.phone}</p>
+              <div className="ec-info">
+                <p className="ec-name">{c.name}</p>
+                <p className="ec-phone">{c.phone}</p>
                 {c.relation && (
-                  <span style={styles.relationBadge}>{c.relation}</span>
+                  <span className="ec-relation">{c.relation}</span>
                 )}
               </div>
 
-              <a href={`tel:${c.phone}`} style={styles.callLink}>
-                <button className="ec-call-btn" style={styles.callBtn}>
-                  📞 Call
-                </button>
+              <a href={`tel:${c.phone}`} className="ec-call-link">
+                <button className="ec-call-btn">📞 Call</button>
               </a>
             </div>
           ))}

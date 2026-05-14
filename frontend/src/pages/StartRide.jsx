@@ -10,19 +10,53 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/ride.css";
-import Navbar from "../components/Navbar";
 
+const API = `${import.meta.env.VITE_API_URL}/api`;
 const TRAFFIC_MULTIPLIER = 1.4;
 
+// Fallback Overpass mirrors in order — if one 429s, try the next
+const OVERPASS_MIRRORS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
+
 function getToken() {
-  return typeof window !== "undefined"
-    ? localStorage.getItem("token")
-    : null;
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("jwt") ||
+    sessionStorage.getItem("token") ||
+    null
+  );
+}
+
+// FIX: Overpass fetch with automatic mirror fallback on 429
+async function overpassQuery(query, timeout = 15000) {
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const res = await axios.post(mirror, query, {
+        headers: { "Content-Type": "text/plain" },
+        timeout,
+      });
+      return res.data;
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 429 || status === 504 || status === 502) {
+        console.warn(`Overpass mirror ${mirror} failed (${status}), trying next…`);
+        continue; // try next mirror
+      }
+      throw err; // non-rate-limit error — don't retry
+    }
+  }
+  // All mirrors exhausted — return empty result instead of throwing
+  console.warn("All Overpass mirrors exhausted, returning empty result");
+  return { elements: [] };
 }
 
 function MapUpdater({ center }) {
   const map = useMap();
-  React.useEffect(() => {
+  useEffect(() => {
     if (center) map.setView(center, 14);
   }, [center]);
   return null;
@@ -57,39 +91,43 @@ function buildCumulativeDistances(routeCoords) {
 }
 
 async function getPoliceStationsAlongRoute(routeCoords, totalEtaMin) {
-  const lats = routeCoords.map(c => c[0]);
-  const lngs = routeCoords.map(c => c[1]);
+  const lats = routeCoords.map((c) => c[0]);
+  const lngs = routeCoords.map((c) => c[1]);
   const minLat = (Math.min(...lats) - 0.01).toFixed(6);
   const maxLat = (Math.max(...lats) + 0.01).toFixed(6);
   const minLng = (Math.min(...lngs) - 0.01).toFixed(6);
   const maxLng = (Math.max(...lngs) + 0.01).toFixed(6);
   const query = `[out:json][timeout:15];(node["amenity"="police"](${minLat},${minLng},${maxLat},${maxLng}););out body;`;
+
   try {
-    const res = await axios.post(
-      "https://overpass-api.de/api/interpreter", query,
-      { headers: { "Content-Type": "text/plain" }, timeout: 15000 }
-    );
-    const nodes = res.data?.elements || [];
+    // FIX: Use mirror-fallback overpass fetch — never throws on 429
+    const data = await overpassQuery(query, 15000);
+    const nodes = data?.elements || [];
     if (nodes.length === 0) return [];
     const cumDists = buildCumulativeDistances(routeCoords);
     const totalRouteDist = cumDists[cumDists.length - 1];
-    const stations = nodes.map(node => {
+    const stations = nodes.map((node) => {
       const idx = closestRouteIndex(routeCoords, [node.lat, node.lon]);
       const distFromStart = cumDists[idx];
-      const etaAtStation = Math.round((distFromStart / totalRouteDist) * totalEtaMin);
+      const etaAtStation =
+        totalRouteDist > 0
+          ? Math.round((distFromStart / totalRouteDist) * totalEtaMin)
+          : 0;
       const name = node.tags?.name || node.tags?.["name:en"] || "Police Station";
       return { name, etaAtStation, distFromStart };
     });
     const seen = new Set();
     return stations
       .sort((a, b) => a.etaAtStation - b.etaAtStation)
-      .filter(s => {
+      .filter((s) => {
         const key = Math.round(s.etaAtStation / 2);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
-  } catch { return []; }
+  } catch {
+    return []; // Always safe — police stations are a bonus, not critical
+  }
 }
 
 async function getSafestRoute(originLat, originLng, destLat, destLng) {
@@ -97,13 +135,14 @@ async function getSafestRoute(originLat, originLng, destLat, destLng) {
   const res = await axios.get(url);
   const routes = res.data.routes;
   if (!routes || routes.length === 0) throw new Error("No routes found");
+
   const scored = await Promise.all(
-    routes.map(async route => {
-      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+    routes.map(async (route) => {
+      const coords = route.geometry.coordinates.map((c) => [c[1], c[0]]);
       const etaMin = Math.round((route.duration / 60) * TRAFFIC_MULTIPLIER);
       const distKm = (route.distance / 1000).toFixed(2);
-      const lats = coords.map(c => c[0]);
-      const lngs = coords.map(c => c[1]);
+      const lats = coords.map((c) => c[0]);
+      const lngs = coords.map((c) => c[1]);
       const minLat = (Math.min(...lats) - 0.01).toFixed(6);
       const maxLat = (Math.max(...lats) + 0.01).toFixed(6);
       const minLng = (Math.min(...lngs) - 0.01).toFixed(6);
@@ -111,17 +150,26 @@ async function getSafestRoute(originLat, originLng, destLat, destLng) {
       const query = `[out:json][timeout:10];(node["amenity"="police"](${minLat},${minLng},${maxLat},${maxLng}););out count;`;
       let policeScore = 0;
       try {
-        const pRes = await axios.post(
-          "https://overpass-api.de/api/interpreter", query,
-          { headers: { "Content-Type": "text/plain" }, timeout: 12000 }
-        );
-        policeScore = parseInt(pRes.data?.elements?.[0]?.tags?.total || "0", 10);
-      } catch {}
-      return { coords, etaMin, distanceKm: distKm, policeScore, distance: route.distance };
+        // FIX: Use mirror-fallback — a 429 here should NOT abort route selection
+        const data = await overpassQuery(query, 12000);
+        policeScore = parseInt(data?.elements?.[0]?.tags?.total || "0", 10);
+      } catch {
+        policeScore = 0; // treat as 0 police stations, not a crash
+      }
+      return {
+        coords,
+        etaMin,
+        distanceKm: distKm,
+        policeScore,
+        distance: route.distance,
+      };
     })
   );
+
   scored.sort((a, b) =>
-    b.policeScore !== a.policeScore ? b.policeScore - a.policeScore : a.distance - b.distance
+    b.policeScore !== a.policeScore
+      ? b.policeScore - a.policeScore
+      : a.distance - b.distance
   );
   return scored[0];
 }
@@ -138,65 +186,84 @@ const STEPS = ["Location", "Destination", "Route", "Launch"];
 function StartRide() {
   const navigate = useNavigate();
 
-  const [destination, setDestination]       = useState("");
-  const [destinationCoords, setDestCoords]  = useState(null);
-  const [currentLocation, setCurrentLoc]   = useState(null);
-  const [route, setRoute]                   = useState([]);
-  const [distance, setDistance]             = useState(null);
-  const [eta, setEta]                       = useState(null);
-  const [policeStations, setPoliceStations] = useState([]);
-  const [rideStarted, setRideStarted]       = useState(false);
-  const [savedRideId, setSavedRideId]       = useState(null);
-  const [loading, setLoading]               = useState(false);
-  const [locLoading, setLocLoading]         = useState(false);
-  const [error, setError]                   = useState("");
-  const [vehicleType, setVehicleType]       = useState("bike");
+  const [destination, setDestination]         = useState("");
+  const [destinationCoords, setDestCoords]    = useState(null);
+  const [currentLocation, setCurrentLoc]      = useState(null);
+  const [currentLocationName, setCurrentLocName] = useState("");
+  const [route, setRoute]                     = useState([]);
+  const [distance, setDistance]               = useState(null);
+  const [eta, setEta]                         = useState(null);
+  const [policeStations, setPoliceStations]   = useState([]);
+  const [rideStarted, setRideStarted]         = useState(false);
+  const [savedRideId, setSavedRideId]         = useState(null);
+  const [loading, setLoading]                 = useState(false);
+  const [locLoading, setLocLoading]           = useState(false);
+  const [launching, setLaunching]             = useState(false);
+  const [error, setError]                     = useState("");
 
-  // ── Autocomplete state ────────────────────────────────────────────────────────
-  const [suggestions, setSuggestions]       = useState([]);
-  const [sugLoading, setSugLoading]         = useState(false);
+  const [vehicleType, setVehicleType]         = useState("bike");
+  const [suggestions, setSuggestions]         = useState([]);
+  const [sugLoading, setSugLoading]           = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestTimer = useRef(null);
   const suggestRef   = useRef(null);
 
-  const step = rideStarted ? 3 : distance ? 2 : currentLocation ? 1 : 0;
+  // FIX: step now derived purely from route readiness — not destinationCoords
+  const step = rideStarted ? 3 : route.length > 0 ? 2 : currentLocation ? 1 : 0;
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handler = (e) => {
-      if (suggestRef.current && !suggestRef.current.contains(e.target)) {
+      if (suggestRef.current && !suggestRef.current.contains(e.target))
         setShowSuggestions(false);
-      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ── Location ──────────────────────────────────────────────────────────────────
   const getLocation = () => {
-    setLocLoading(true); setError("");
+    setLocLoading(true);
+    setError("");
     navigator.geolocation.getCurrentPosition(
-      pos => { setCurrentLoc([pos.coords.latitude, pos.coords.longitude]); setLocLoading(false); },
-      () => { setError("Location access denied. Please allow location in your browser."); setLocLoading(false); }
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCurrentLoc([lat, lng]);
+        // Reverse geocode for display name
+        try {
+          const res = await axios.get(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const addr = res.data?.address;
+          setCurrentLocName(
+            addr?.road || addr?.suburb || addr?.city || addr?.town || "Current Location"
+          );
+        } catch {
+          setCurrentLocName("Current Location");
+        }
+        setLocLoading(false);
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        setError("Location access denied. Please allow location in your browser settings.");
+        setLocLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  // ── Autocomplete: fetch suggestions as user types ─────────────────────────────
   const handleDestinationChange = (e) => {
     const val = e.target.value;
     setDestination(val);
-    setDestCoords(null); // reset coords when user edits
+    setDestCoords(null); // reset coords on edit
 
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
-
     if (val.trim().length < 2) {
       setSuggestions([]); setShowSuggestions(false); return;
     }
-
     setSugLoading(true);
     suggestTimer.current = setTimeout(async () => {
       try {
-        // Bias results toward India for better local suggestions
         const res = await axios.get(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=6&countrycodes=in&addressdetails=1`,
           { headers: { "Accept-Language": "en" } }
@@ -207,82 +274,146 @@ function StartRide() {
         setSuggestions([]);
       }
       setSugLoading(false);
-    }, 350); // 350ms debounce
+    }, 350);
   };
 
-  // ── Pick a suggestion ─────────────────────────────────────────────────────────
   const pickSuggestion = (place) => {
     const name = place.display_name.split(",").slice(0, 3).join(", ");
     setDestination(name);
     setDestCoords([parseFloat(place.lat), parseFloat(place.lon)]);
-    setSuggestions([]); setShowSuggestions(false);
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
-  // ── Format suggestion label ───────────────────────────────────────────────────
   const formatSuggestion = (place) => {
     const parts = place.display_name.split(", ");
-    const main = parts[0];
-    const sub  = parts.slice(1, 4).join(", ");
-    return { main, sub };
+    return { main: parts[0], sub: parts.slice(1, 4).join(", ") };
   };
 
-  // ── Search / route calculation ────────────────────────────────────────────────
   const searchDestination = async () => {
     if (!currentLocation) { setError("Get your current location first."); return; }
     if (!destination.trim()) { setError("Enter a destination."); return; }
-    setLoading(true); setError("");
-    setRoute([]); setDistance(null);
-    setEta(null); setPoliceStations([]); setRideStarted(false); setSavedRideId(null);
+
+    setLoading(true);
+    setError("");
+    setRoute([]);
+    setDistance(null);
+    setEta(null);
+    setPoliceStations([]);
+    setRideStarted(false);
+    setSavedRideId(null);
     setShowSuggestions(false);
 
     try {
       let destLat, destLng;
 
-      // If user picked from autocomplete, use those coords directly
       if (destinationCoords) {
         [destLat, destLng] = destinationCoords;
       } else {
-        // Otherwise geocode the typed text
         const geo = await axios.get(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destination)}&format=json`
         );
         if (!geo.data || geo.data.length === 0) {
-          setError("Location not found. Try a more specific name."); setLoading(false); return;
+          setError("Location not found. Try a more specific name.");
+          setLoading(false);
+          return;
         }
         destLat = parseFloat(geo.data[0].lat);
         destLng = parseFloat(geo.data[0].lon);
+        // FIX: Always set coords from geocode result too
         setDestCoords([destLat, destLng]);
       }
 
-      const best = await getSafestRoute(currentLocation[0], currentLocation[1], destLat, destLng);
-      setRoute(best.coords); setDistance(best.distanceKm); setEta(best.etaMin);
-      const stations = await getPoliceStationsAlongRoute(best.coords, best.etaMin);
-      setPoliceStations(stations);
-    } catch { setError("Could not calculate route. Please try again."); }
+      const best = await getSafestRoute(
+        currentLocation[0], currentLocation[1],
+        destLat, destLng
+      );
+
+      setRoute(best.coords);
+      setDistance(best.distanceKm);
+      setEta(best.etaMin);
+
+      // FIX: Police stations are non-critical — fetch after route is set,
+      // never block or throw from here
+      getPoliceStationsAlongRoute(best.coords, best.etaMin)
+        .then(setPoliceStations)
+        .catch(() => setPoliceStations([]));
+
+    } catch (err) {
+      console.error("Route search error:", err);
+      setError("Could not calculate route. Please try again.");
+    }
+
+    // FIX: setLoading(false) is always reached — not blocked by police station fetch
     setLoading(false);
   };
 
-  // ── Start ride ────────────────────────────────────────────────────────────────
   const startRide = async () => {
+    // Guards
+    if (!currentLocation) {
+      setError("Current location is missing.");
+      return;
+    }
+    if (!destinationCoords) {
+      setError("Destination coordinates missing. Please search again.");
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      setError("Not logged in. Please log in and try again.");
+      return;
+    }
+
+    setLaunching(true);
+    setError("");
+
     try {
-      const res = await axios.post(
-        "https://cab-safety.onrender.com/api/rides/start",
-        {
-          lat: currentLocation[0], lng: currentLocation[1],
-          destLat: destinationCoords[0], destLng: destinationCoords[1],
-          destinationName: destination, vehicleType,
-          distance, expectedTime: eta,
-        },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
-      setSavedRideId(res.data.ride._id);
+      const payload = {
+        lat:               currentLocation[0],
+        lng:               currentLocation[1],
+        startLocationName: currentLocationName || "Unknown",
+        destLat:           destinationCoords[0],
+        destLng:           destinationCoords[1],
+        destinationName:   destination,
+        vehicleType,
+        distance:          String(distance),
+        expectedTime:      Number(eta),
+      };
+
+      console.log("Starting ride with payload:", payload);
+
+      const res = await axios.post(`${API}/rides/start`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("Ride start response:", res.data);
+
+      // FIX: Handle both response shapes: { ride: { _id } } and { _id }
+      const rideId = res.data?.ride?._id || res.data?._id;
+
+      if (!rideId) {
+        console.error("No ride ID in response:", res.data);
+        setError("Server did not return a ride ID. Please try again.");
+        setLaunching(false);
+        return;
+      }
+
+      setSavedRideId(rideId);
       setRideStarted(true);
+
+      // FIX: Navigate immediately — don't wait for state re-render
+      navigate(`/tracking/${rideId}`);
+
     } catch (err) {
-      setError(
-        err.response?.status === 401
-          ? "Session expired. Please log in again."
-          : "Could not start ride. Please try again."
-      );
+      console.error("startRide error:", err.response?.data || err.message);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError("Session expired. Please log in again.");
+      } else {
+        setError(
+          `Could not start ride: ${err.response?.data?.message || err.message || "Unknown error"}`
+        );
+      }
+      setLaunching(false);
     }
   };
 
@@ -290,9 +421,8 @@ function StartRide() {
 
   return (
     <>
-      {/* <Navbar /> */}
 
-      {/* ── TOP STEPS BAR ── */}
+      {/* Steps Bar */}
       <div className="ride-steps-bar">
         <div className="ride-steps-inner">
           <div className="ride-steps-tag">
@@ -301,7 +431,10 @@ function StartRide() {
           </div>
           <div className="ride-steps">
             {STEPS.map((s, i) => (
-              <div key={s} className={`ride-step ${i <= step ? "done" : ""} ${i === step ? "active" : ""}`}>
+              <div
+                key={s}
+                className={`ride-step ${i <= step ? "done" : ""} ${i === step ? "active" : ""}`}
+              >
                 <div className="ride-step-dot">{i < step ? "✓" : i + 1}</div>
                 <span>{s}</span>
                 {i < STEPS.length - 1 && <div className="ride-step-line" />}
@@ -315,9 +448,8 @@ function StartRide() {
         <div className="ride-grid-bg" aria-hidden="true" />
         <div className="ride-layout">
 
-          {/* ══ LEFT PANEL ══ */}
+          {/* Left Panel */}
           <div className="ride-panel">
-
             <h1 className="ride-title">Start<br /><em>Ride</em></h1>
             <p className="ride-subtitle">Safest route · Live tracking · SOS ready</p>
 
@@ -328,17 +460,16 @@ function StartRide() {
                 <div className="ride-loc-found">
                   <span style={{ fontSize: 22 }}>📍</span>
                   <div>
-                    <p className="ride-loc-coords">{currentLocation[0].toFixed(4)}°N, {currentLocation[1].toFixed(4)}°E</p>
-                    <p className="ride-loc-status">GPS lock acquired</p>
+                    <p className="ride-loc-coords">
+                      {currentLocation[0].toFixed(4)}°N, {currentLocation[1].toFixed(4)}°E
+                    </p>
+                    <p className="ride-loc-status">{currentLocationName || "GPS lock acquired"}</p>
                   </div>
                   <button className="ride-reget-btn" onClick={getLocation}>↺</button>
                 </div>
               ) : (
                 <button className="ride-loc-btn" onClick={getLocation} disabled={locLoading}>
-                  {locLoading
-                    ? <><span className="ride-spinner" /> Acquiring GPS…</>
-                    : <>◎ Get Current Location</>
-                  }
+                  {locLoading ? <><span className="ride-spinner" /> Acquiring GPS…</> : <>◎ Get Current Location</>}
                 </button>
               )}
             </div>
@@ -346,8 +477,6 @@ function StartRide() {
             {/* Step 2 — Destination + Vehicle */}
             <div className={`ride-card ${destinationCoords ? "done" : ""}`}>
               <div className="ride-card-label">02 — DESTINATION</div>
-
-              {/* Autocomplete input */}
               <div className="ride-dest-row" ref={suggestRef}>
                 <div className="ride-autocomplete-wrap">
                   <input
@@ -357,14 +486,12 @@ function StartRide() {
                     value={destination}
                     onChange={handleDestinationChange}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    onKeyDown={e => {
+                    onKeyDown={(e) => {
                       if (e.key === "Enter") { searchDestination(); setShowSuggestions(false); }
                       if (e.key === "Escape") setShowSuggestions(false);
                     }}
                     autoComplete="off"
                   />
-
-                  {/* Suggestions dropdown */}
                   {showSuggestions && (suggestions.length > 0 || sugLoading) && (
                     <div className="ride-suggestions">
                       {sugLoading && (
@@ -375,11 +502,7 @@ function StartRide() {
                       {!sugLoading && suggestions.map((place, i) => {
                         const { main, sub } = formatSuggestion(place);
                         return (
-                          <button
-                            key={i}
-                            className="ride-sug-item"
-                            onMouseDown={() => pickSuggestion(place)}
-                          >
+                          <button key={i} className="ride-sug-item" onMouseDown={() => pickSuggestion(place)}>
                             <span className="ride-sug-pin">📍</span>
                             <span className="ride-sug-text">
                               <span className="ride-sug-main">{main}</span>
@@ -391,15 +514,18 @@ function StartRide() {
                     </div>
                   )}
                 </div>
-
-                <button className="ride-search-btn" onClick={searchDestination} disabled={loading || !currentLocation}>
+                <button
+                  className="ride-search-btn"
+                  onClick={searchDestination}
+                  disabled={loading || !currentLocation}
+                >
                   {loading ? <span className="ride-spinner" /> : "→"}
                 </button>
               </div>
 
               <div className="ride-vehicle-label">VEHICLE</div>
               <div className="ride-vehicles">
-                {VEHICLE_OPTIONS.map(v => (
+                {VEHICLE_OPTIONS.map((v) => (
                   <button
                     key={v.value}
                     className={`ride-vehicle-btn ${vehicleType === v.value ? "active" : ""}`}
@@ -416,7 +542,7 @@ function StartRide() {
             {error && <div className="ride-error">⚠ {error}</div>}
 
             {/* Step 3 — Route info */}
-            {distance && !loading && (
+            {route.length > 0 && !loading && (
               <div className="ride-card ride-route-card done">
                 <div className="ride-card-label">03 — ROUTE ANALYSIS</div>
                 <div className="ride-route-stats">
@@ -438,17 +564,17 @@ function StartRide() {
                     <span className="ride-stat-label">Safety score</span>
                   </div>
                 </div>
-
                 <div className="ride-safety-wrap">
                   <div className="ride-safety-bar">
                     <div className="ride-safety-fill" style={{ width: `${safetyScore}%` }} />
                   </div>
                   <span className="ride-safety-label">🛡️ Safest route selected</span>
                 </div>
-
                 {policeStations.length > 0 && (
                   <div className="ride-police-list">
-                    <div className="ride-police-header">🚔 {policeStations.length} police station{policeStations.length > 1 ? "s" : ""} on route</div>
+                    <div className="ride-police-header">
+                      🚔 {policeStations.length} police station{policeStations.length > 1 ? "s" : ""} on route
+                    </div>
                     <div className="ride-police-items">
                       {policeStations.map((s, i) => (
                         <div key={i} className="ride-police-item">
@@ -462,24 +588,36 @@ function StartRide() {
               </div>
             )}
 
-            {/* Launch button */}
-            {destinationCoords && !rideStarted && !loading && (
-              <button className="ride-launch-btn" onClick={startRide}>
+            {/* FIX: Launch button — depends on route, not police stations */}
+            {route.length > 0 && destinationCoords && !rideStarted && !loading && (
+              <button
+                className="ride-launch-btn"
+                onClick={startRide}
+                disabled={launching}
+              >
                 <span className="ride-launch-ring" />
                 <span className="ride-launch-ring ride-launch-ring2" />
-                <span className="ride-launch-text">▶ Launch Ride</span>
+                <span className="ride-launch-text">
+                  {launching
+                    ? <><span className="ride-spinner" /> Launching…</>
+                    : "▶ Launch Ride"
+                  }
+                </span>
               </button>
             )}
 
+            {/* Fallback manual nav in case auto-navigate failed */}
             {rideStarted && savedRideId && (
-              <button className="ride-track-btn" onClick={() => navigate(`/tracking/${savedRideId}`)}>
+              <button
+                className="ride-track-btn"
+                onClick={() => navigate(`/tracking/${savedRideId}`)}
+              >
                 Go to Live Tracking →
               </button>
             )}
-
           </div>
 
-          {/* ══ MAP PANEL ══ */}
+          {/* Map Panel */}
           <div className="ride-map-panel">
             {currentLocation ? (
               <>
@@ -500,7 +638,10 @@ function StartRide() {
                   <Marker position={currentLocation} />
                   {destinationCoords && <Marker position={destinationCoords} />}
                   {route.length > 0 && (
-                    <Polyline positions={route} pathOptions={{ color: "#f59e0b", weight: 4, opacity: 0.9 }} />
+                    <Polyline
+                      positions={route}
+                      pathOptions={{ color: "#f59e0b", weight: 4, opacity: 0.9 }}
+                    />
                   )}
                 </MapContainer>
               </>
@@ -512,7 +653,6 @@ function StartRide() {
               </div>
             )}
           </div>
-
         </div>
       </div>
     </>

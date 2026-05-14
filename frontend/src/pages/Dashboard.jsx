@@ -198,8 +198,13 @@ export default function Dashboard() {
                       </p>
 
                       <p className="db-ride-meta">
-                        {ride.distance ? `${ride.distance} km` : "—"}
-                        {ride.expectedTime ? ` · ${ride.expectedTime} min` : ""}
+                        {(ride.actualDistance ?? ride.distance)
+                        ? `${ride.actualDistance ?? ride.distance} km`
+                        : "—"}
+
+                      {(ride.actualTime ?? ride.expectedTime)
+                        ? ` · ${ride.actualTime ?? ride.expectedTime} min`
+                        : ""}
                         {" · "}{timeAgo(ride.createdAt)}
                       </p>
                     </div>

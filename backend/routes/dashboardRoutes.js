@@ -21,7 +21,12 @@ router.get("/", auth, async (req, res) => {
 
     // Total distance (sum of completed rides)
     const totalDistance = completed.reduce((sum, r) => {
-      return sum + (parseFloat(r.actualDistance || r.distance) || 0);
+      const distance =
+        r.actualDistance != null
+          ? parseFloat(r.actualDistance)
+          : 0;
+
+      return sum + (distance || 0);
     }, 0);
 
     // Total time in minutes

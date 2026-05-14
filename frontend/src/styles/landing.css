@@ -108,10 +108,11 @@ html, body, #root {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px 64px;
+  padding: 20px 64px;
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  background: rgba(6,9,18,0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(6, 9, 18, 0.75);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -119,9 +120,9 @@ html, body, #root {
 
 .logo {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.3px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -129,51 +130,54 @@ html, body, #root {
 }
 
 .logo-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .nav-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .btn-outline {
-  padding: 9px 20px;
-  border: 1px solid rgba(255,255,255,0.25);
+  padding: 8px 18px;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
-  color: var(--white);
+  color: var(--muted);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  letter-spacing: 0.1px;
 }
 
 .btn-outline:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.4);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--white);
 }
 
 .btn-solid {
-  padding: 9px 20px;
+  padding: 8px 18px;
   border: none;
   border-radius: 8px;
   background: var(--red);
   color: var(--white);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px var(--red-glow);
+  box-shadow: 0 4px 14px var(--red-glow);
+  letter-spacing: 0.1px;
 }
 
 .btn-solid:hover {
   background: var(--red-deep);
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px var(--red-glow);
+  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.35);
 }
 
 /* =====================

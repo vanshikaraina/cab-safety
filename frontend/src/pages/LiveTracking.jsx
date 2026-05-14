@@ -13,11 +13,29 @@ import "leaflet/dist/leaflet.css";
 import "../styles/LiveTracking.css";
 import Navbar from "../components/Navbar";
 import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+// const DEV_TEST_MODE = true;          // flip to false before deploying
+// const DEV_START = [30.7333, 76.7794]; // Chandigarh
+// const DEV_END   = [28.6139, 77.2090]; // Delhi
 
-const API = "https://cab-safety.onrender.com/api";
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
+const API = `${import.meta.env.VITE_API_URL}/api`;
 const STOPPED_THRESHOLD_M = 50;
 const STOPPED_TIMEOUT_MS = 5 * 60 * 1000;
 const DEST_RADIUS_M = 200;
+// How far off-route (meters) before AI deviation kicks in
+const AI_DEVIATION_THRESHOLD_M = 300;
+// How many consecutive off-route GPS pings before triggering AI
+const AI_DEVIATION_CONSECUTIVE = 3;
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -92,7 +110,6 @@ function isNightTime() {
   return h >= 22 || h < 5;
 }
 
-// Custom police station marker icon
 function makePoliceIcon(passed) {
   return L.divIcon({
     className: "",
@@ -164,7 +181,6 @@ function SafetyLayer({ policeStations, route }) {
   return null;
 }
 
-// Renders police station markers on the map with popups
 function PoliceMarkers({ stations, currentDistKm }) {
   return (
     <>
@@ -193,12 +209,58 @@ function PoliceMarkers({ stations, currentDistKm }) {
   );
 }
 
+// ─── NEW: Alternate route polylines on map ───────────────────────────────────
+function AlternateRouteLayer({ routes, activeIdx, onSelect }) {
+  return (
+    <>
+      {routes.map((r, i) => {
+        if (i === activeIdx) return null; // active route drawn separately
+        return (
+          <Polyline
+            key={i}
+            positions={r.coords}
+            pathOptions={{
+              color: "#6b7280",
+              weight: 4,
+              opacity: 0.55,
+              dashArray: "8 6",
+            }}
+            eventHandlers={{ click: () => onSelect(i) }}
+          >
+            <Popup>
+              <div style={{ minWidth: 160 }}>
+                <strong>Route {i + 1}</strong><br />
+                <span style={{ fontSize: 12 }}>
+                  {r.distanceKm.toFixed(1)} km · {fmtMin(r.durationMin)}
+                </span><br />
+                <button
+                  style={{
+                    marginTop: 6, padding: "4px 10px",
+                    background: "#f59e0b", border: "none",
+                    borderRadius: 4, cursor: "pointer",
+                    color: "#111", fontWeight: 600, fontSize: 12
+                  }}
+                  onClick={() => onSelect(i)}
+                >
+                  Switch to this route
+                </button>
+              </div>
+            </Popup>
+          </Polyline>
+        );
+      })}
+    </>
+  );
+}
+
 export default function LiveTracking() {
   const { rideId } = useParams();
   const navigate = useNavigate();
 
   const [ride, setRide] = useState(null);
-  const [route, setRoute] = useState([]);
+  const [route, setRoute] = useState([]);                    // active route coords
+  const [allRoutes, setAllRoutes] = useState([]);            // NEW: all alternate routes
+  const [activeRouteIdx, setActiveRouteIdx] = useState(0);  // NEW: which route is active
   const [policeStations, setPoliceStations] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [currentPos, setCurrentPos] = useState(null);
@@ -206,6 +268,7 @@ export default function LiveTracking() {
   const [rideTime, setRideTime] = useState(0);
   const rideStartTimeRef = useRef(null);
   const [distCovered, setDistCovered] = useState(0);
+  const [actualTravelDistance, setActualTravelDistance] = useState(0);
   const [remainingDist, setRemainingDist] = useState(null);
   const [remainingEta, setRemainingEta] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -221,6 +284,16 @@ export default function LiveTracking() {
   const [quickMsg, setQuickMsg] = useState("");
   const [showSafetyMap, setShowSafetyMap] = useState(false);
   const [showPoliceMarkers, setShowPoliceMarkers] = useState(true);
+  const [isStopping, setIsStopping] = useState(false);
+
+  // ─── NEW: AI deviation state ────────────────────────────────────────────────
+  const [aiDeviationModal, setAiDeviationModal] = useState(false);
+  const [aiDeviationAnalysis, setAiDeviationAnalysis] = useState(null);
+  const [aiDeviationLoading, setAiDeviationLoading] = useState(false);
+  const [aiSuggestedRouteIdx, setAiSuggestedRouteIdx] = useState(null);
+  const deviationCountRef = useRef(0);
+  const aiTriggeredRef = useRef(false); // prevent re-triggering while modal open
+  // ────────────────────────────────────────────────────────────────────────────
 
   const lastPosRef = useRef(null);
   const lastMoveTimeRef = useRef(Date.now());
@@ -229,6 +302,7 @@ export default function LiveTracking() {
   const cumDistsRef = useRef([]);
   const routeRef = useRef([]);
   const destRef = useRef(null);
+  const allRoutesRef = useRef([]);   // NEW: ref mirror for allRoutes
 
   const extractCoords = (loc) => {
     if (!loc) return [null, null];
@@ -239,10 +313,11 @@ export default function LiveTracking() {
 
   useEffect(() => {
     if (!rideId) { setLoadError("No ride ID provided."); return; }
-    axios.get(`${API}/rides/${rideId}`)
+    axios.get(`${API}/rides/${rideId}`, {
+  headers: { Authorization: `Bearer ${getToken()}` },
+})
       .then(async (res) => {
         const d = res.data;
-        // 🚨 ADD THIS CHECK
         if (d.status !== "ACTIVE") {
           setLoadError("This ride is already completed.");
           return;
@@ -257,7 +332,7 @@ export default function LiveTracking() {
         const [eLat, eLng] = extractCoords(d.endLocation);
         if (sLat && sLng && eLat && eLng) {
           destRef.current = [eLat, eLng];
-          await fetchRoute([sLat, sLng], [eLat, eLng]);
+          await fetchRoutes([sLat, sLng], [eLat, eLng]); // fetch ALL routes
           const [cLat, cLng] = extractCoords(d.currentLocation);
           if (cLat && cLng) {
             setCurrentPos([cLat, cLng]);
@@ -277,31 +352,65 @@ export default function LiveTracking() {
     if (route.length > 0 && lastPosRef.current) recalcMetrics(lastPosRef.current);
   }, [route]);
 
-  const fetchRoute = async (start, end) => {
+  // ─── NEW: Fetch all available routes from OSRM (up to 3 alternatives) ───────
+  const fetchRoutes = async (start, end) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true`;
       const res = await axios.get(url);
-      const coords = res.data.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]);
-      setRoute(coords);
-      routeRef.current = coords;
-      cumDistsRef.current = buildCumDists(coords);
-      fetchPoliceStations(coords);
-    } catch (e) { console.error("Route fetch failed", e); }
+      const osrmRoutes = res.data.routes;
+
+      const parsed = osrmRoutes.map((r, i) => ({
+        idx: i,
+        coords: r.geometry.coordinates.map((c) => [c[1], c[0]]),
+        distanceKm: r.distance / 1000,
+        durationMin: Math.round(r.duration / 60),
+      }));
+
+      setAllRoutes(parsed);
+      allRoutesRef.current = parsed;
+
+      // Set first (fastest) as default active
+      const primary = parsed[0];
+      setRoute(primary.coords);
+      routeRef.current = primary.coords;
+      cumDistsRef.current = buildCumDists(primary.coords);
+      setActiveRouteIdx(0);
+
+      fetchPoliceStations(primary.coords);
+    } catch (e) {
+      console.error("Route fetch failed", e);
+    }
   };
+
+  // ─── NEW: Switch active route (mid-ride) ────────────────────────────────────
+  const switchRoute = useCallback((idx) => {
+    const routes = allRoutesRef.current;
+    if (!routes[idx]) return;
+    const chosen = routes[idx];
+    setRoute(chosen.coords);
+    routeRef.current = chosen.coords;
+    cumDistsRef.current = buildCumDists(chosen.coords);
+    setActiveRouteIdx(idx);
+    setOffRoute(false);
+    deviationCountRef.current = 0;
+    aiTriggeredRef.current = false;
+    if (lastPosRef.current) recalcMetrics(lastPosRef.current);
+    fetchPoliceStations(chosen.coords);
+    setAiDeviationModal(false);
+  }, []);
 
   const fetchPoliceStations = async (coords) => {
     const lats = coords.map((c) => c[0]);
     const lngs = coords.map((c) => c[1]);
-    const minLat = (Math.min(...lats) - 0.05).toFixed(6);
-    const maxLat = (Math.max(...lats) + 0.05).toFixed(6);
-    const minLng = (Math.min(...lngs) - 0.05).toFixed(6);
-    const maxLng = (Math.max(...lngs) + 0.05).toFixed(6);
-    // Fetch police stations AND hospitals/fire stations as safety landmarks
-    const query = `[out:json][timeout:20];(
+    const minLat = (Math.min(...lats) - 0.015).toFixed(6);
+    const maxLat = (Math.max(...lats) + 0.015).toFixed(6);
+    const minLng = (Math.min(...lngs) - 0.015).toFixed(6);
+    const maxLng = (Math.max(...lngs) + 0.015).toFixed(6);
+    const query = `[out:json][timeout:10];(
       node["amenity"="police"](${minLat},${minLng},${maxLat},${maxLng});
     );out body;`;
     try {
-      const res = await axios.post("https://overpass.kumi.systems/api/interpreter", query,
+      const res = await axios.post("https://overpass-api.de/api/interpreter", query,
         { headers: { "Content-Type": "text/plain" }, timeout: 40000 });
       const nodes = res.data?.elements || [];
       const cumDists = buildCumDists(coords);
@@ -325,6 +434,75 @@ export default function LiveTracking() {
       console.error("Police stations fetch failed:", e);
     }
   };
+
+  // ─── NEW: AI deviation analysis via Claude API ───────────────────────────────
+  const runAIDeviationAnalysis = useCallback(async (pos) => {
+    if (aiTriggeredRef.current) return;
+    aiTriggeredRef.current = true;
+    setAiDeviationLoading(true);
+    setAiDeviationModal(true);
+    setAiDeviationAnalysis(null);
+
+    const routes = allRoutesRef.current;
+    const activeRoute = routeRef.current;
+    const distFromRoute = haversineM(pos, activeRoute[closestIdx(activeRoute, pos)]);
+
+    // Build a compact summary of each route for the AI
+    const routeSummaries = routes.map((r, i) => {
+      const distFromThisRoute = haversineM(pos, r.coords[closestIdx(r.coords, pos)]);
+      return `Route ${i + 1}: ${r.distanceKm.toFixed(1)} km, ~${r.durationMin} min, distance from current position: ${distFromThisRoute.toFixed(0)} m`;
+    });
+
+    const prompt = `You are a safety assistant for a cab ride tracking app in India.
+
+The rider has deviated ${distFromRoute.toFixed(0)} meters from their planned route.
+Current GPS position: [${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}]
+Time of day: ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2, "0")} (${isNightTime() ? "NIGHT" : "DAY"})
+
+Available routes:
+${routeSummaries.join("\n")}
+
+Active route index (0-based): ${activeRouteIdx}
+
+Based on the deviation distance, time of day, and available alternate routes, provide:
+1. A SHORT alert message (1 sentence, urgent tone) about the deviation
+2. Which route index (0-based) you recommend switching to and why (1 sentence)
+3. A safety tip given it is ${isNightTime() ? "nighttime" : "daytime"} (1 sentence)
+
+Respond in this exact JSON format (no markdown, no extra text):
+{"alert":"...","recommendedRouteIdx":0,"reason":"...","safetyTip":"..."}`;
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      const data = await response.json();
+      const text = data.content?.map(b => b.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setAiDeviationAnalysis(parsed);
+      setAiSuggestedRouteIdx(parsed.recommendedRouteIdx ?? 0);
+    } catch (e) {
+      console.error("AI deviation analysis failed", e);
+      setAiDeviationAnalysis({
+        alert: "You've left the planned route. Please check your path.",
+        recommendedRouteIdx: 0,
+        reason: "Defaulting to the primary route.",
+        safetyTip: isNightTime()
+          ? "Stay on well-lit roads and avoid isolated areas at night."
+          : "Stay on main roads and follow traffic rules.",
+      });
+      setAiSuggestedRouteIdx(0);
+    } finally {
+      setAiDeviationLoading(false);
+    }
+  }, [activeRouteIdx]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -362,9 +540,25 @@ export default function LiveTracking() {
     setRemainingDist(leftKm.toFixed(1));
     setProgress(Math.min(100, Math.round((coveredKm / totalDist) * 100)));
     setRemainingEta(Math.round((leftKm / 30) * 60 * 1.4));
-    setOffRoute(haversineM(pos, coords[idx]) > 300);
+    const distFromRoute = haversineM(pos, coords[idx]);
+    const isOff = distFromRoute > AI_DEVIATION_THRESHOLD_M;
+    setOffRoute(isOff);
+
+    // ─── NEW: Consecutive deviation counter → trigger AI ──────────────────
+    if (isOff) {
+      deviationCountRef.current += 1;
+      if (deviationCountRef.current >= AI_DEVIATION_CONSECUTIVE && !aiTriggeredRef.current) {
+        runAIDeviationAnalysis(pos);
+      }
+    } else {
+      deviationCountRef.current = 0;
+      // Reset AI trigger once back on route so it can fire again if needed
+      if (!aiDeviationModal) aiTriggeredRef.current = false;
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     if (destRef.current && haversineM(pos, destRef.current) < DEST_RADIUS_M) setArrived(true);
-  }, []);
+  }, [runAIDeviationAnalysis, aiDeviationModal]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -375,11 +569,19 @@ export default function LiveTracking() {
         const lng = pos.coords.longitude;
         setCurrentPos([lat, lng]);
         setSpeed(pos.coords.speed ? +(pos.coords.speed * 3.6).toFixed(1) : 0);
-        axios.post(`${API}/rides/update-location`, { rideId, lat, lng }).catch(() => {});
+        axios.post(
+  `${API}/rides/update-location`,
+  { rideId, lat, lng },
+  { headers: { Authorization: `Bearer ${getToken()}` } }
+).catch(() => {});
         recalcMetrics([lat, lng]);
         if (lastPosRef.current) {
-          const moved = haversineM(lastPosRef.current, [lat, lng]);
-          if (moved > STOPPED_THRESHOLD_M) {
+        const moved = haversineM(lastPosRef.current, [lat, lng]);
+        // Ignore tiny GPS jumps
+        if (moved > 15) {
+          setActualTravelDistance(prev => prev + moved / 1000);
+        }
+        if (moved > STOPPED_THRESHOLD_M) {
             lastMoveTimeRef.current = Date.now();
             if (stoppedTimerRef.current) { clearTimeout(stoppedTimerRef.current); stoppedTimerRef.current = null; }
             setStoppedAlert(false);
@@ -474,12 +676,43 @@ export default function LiveTracking() {
     );
   };
 
-  const stopRide = async () => {
-    try {
-      await axios.post(`${API}/rides/stop`, { rideId, actualDistance: parseFloat(distCovered) || 0 });
-      navigate("/dashboard");
-    } catch { alert("Could not stop ride. Please try again."); }
-  };
+const stopRide = async () => {
+  if (isStopping) return;
+
+  if (!window.confirm("Are you sure you want to end this ride?"))
+    return;
+
+  setIsStopping(true);
+
+  try {
+    await axios.post(
+      `${API}/rides/stop`,
+      {
+        rideId,
+        actualDistance: parseFloat(actualTravelDistance.toFixed(2)) || 0
+      },
+      { headers: { Authorization: `Bearer ${getToken()}` } }
+    );
+
+    if (stoppedTimerRef.current)
+      clearTimeout(stoppedTimerRef.current);
+
+    if (sosCountdownRef.current)
+      clearInterval(sosCountdownRef.current);
+
+    navigate("/dashboard");
+  } catch (err) {
+    console.error("Stop ride error:", err.response?.data || err.message);
+
+    alert(
+      `Could not stop ride: ${
+        err.response?.data?.message || "Please try again."
+      }`
+    );
+
+    setIsStopping(false);
+  }
+};
 
   const dismissStoppedAlert = () => {
     setStoppedAlert(false); setSosCountdown(null);
@@ -489,23 +722,101 @@ export default function LiveTracking() {
   };
 
   const currentDistKm = parseFloat(distCovered) || 0;
-
-  // Stations ahead of current position, sorted by distance along route
   const stationsAhead = policeStations.filter(s => s.distKm > currentDistKm - 0.2);
   const stationsBehind = policeStations.filter(s => s.distKm <= currentDistKm - 0.2);
   const nextStation = stationsAhead[0] || null;
 
-  if (loadError) return (<><Navbar /><div className="lt-error-page"><div className="lt-error">⚠️ {loadError}</div></div></>);
-  if (!ride) return (<><Navbar /><div className="lt-error-page"><div className="lt-loading"><div className="lt-spinner" /><p>Loading ride…</p></div></div></>);
+  if (loadError) return (<><div className="lt-error-page"><div className="lt-error">⚠️ {loadError}</div></div></>);
+  if (!ride) return (<><div className="lt-error-page"><div className="lt-loading"><div className="lt-spinner" /><p>Loading ride…</p></div></div></>);
 
   return (
     <>
-      {/* <Navbar /> */}
       <div className="lt-page">
         {nightMode   && <div className="lt-banner lt-banner-night">🌙 Night ride in progress — stay alert and ride safely</div>}
         {batteryWarn && <div className="lt-banner lt-banner-battery">🔋 Low battery — your live location may stop updating soon</div>}
-        {offRoute    && <div className="lt-banner lt-banner-warn">⚠️ You've left the planned route</div>}
-        {arrived     && <div className="lt-banner lt-banner-arrived">🎉 You've arrived! <button onClick={stopRide}>End Ride</button></div>}
+        {offRoute    && !aiDeviationModal && <div className="lt-banner lt-banner-warn">⚠️ You've left the planned route — analysing…</div>}
+        {arrived     && <div className="lt-banner lt-banner-arrived">🎉 You've arrived! <button onClick={stopRide} disabled={isStopping}>
+          {isStopping ? "Ending…" : "End Ride"}
+        </button></div>}
+
+        {/* ─── NEW: AI Deviation Modal ──────────────────────────────────────── */}
+        {aiDeviationModal && (
+          <div className="lt-modal-overlay">
+            <div className="lt-modal lt-modal-deviation">
+              <div className="lt-modal-icon">🤖</div>
+              <h3>Route Deviation Detected</h3>
+
+              {aiDeviationLoading ? (
+                <div className="lt-ai-loading">
+                  <div className="lt-spinner" />
+                  <p>AI analysing your route…</p>
+                </div>
+              ) : aiDeviationAnalysis ? (
+                <>
+                  <div className="lt-ai-alert-box">
+                    <p className="lt-ai-alert-text">⚠️ {aiDeviationAnalysis.alert}</p>
+                  </div>
+
+                  <div className="lt-ai-reason">
+                    <span className="lt-ai-label">💡 Recommendation</span>
+                    <p>{aiDeviationAnalysis.reason}</p>
+                  </div>
+
+                  <div className="lt-ai-safety-tip">
+                    <span className="lt-ai-label">🛡️ Safety Tip</span>
+                    <p>{aiDeviationAnalysis.safetyTip}</p>
+                  </div>
+
+                  {/* Route options */}
+                  {allRoutes.length > 1 && (
+                    <div className="lt-ai-route-options">
+                      <span className="lt-ai-label">🗺️ Available Routes</span>
+                      {allRoutes.map((r, i) => (
+                        <button
+                          key={i}
+                          className={`lt-ai-route-btn ${i === activeRouteIdx ? "lt-ai-route-active" : ""} ${i === aiDeviationAnalysis.recommendedRouteIdx ? "lt-ai-route-suggested" : ""}`}
+                          onClick={() => switchRoute(i)}
+                        >
+                          <span className="lt-ai-route-num">Route {i + 1}</span>
+                          <span className="lt-ai-route-meta">{r.distanceKm.toFixed(1)} km · {fmtMin(r.durationMin)}</span>
+                          {i === activeRouteIdx && <span className="lt-ai-route-tag lt-tag-current">Current</span>}
+                          {i === aiDeviationAnalysis.recommendedRouteIdx && i !== activeRouteIdx && (
+                            <span className="lt-ai-route-tag lt-tag-ai">AI Pick ✨</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="lt-modal-btns">
+                    {aiDeviationAnalysis.recommendedRouteIdx !== activeRouteIdx && (
+                      <button
+                        className="lt-modal-ok"
+                        onClick={() => switchRoute(aiDeviationAnalysis.recommendedRouteIdx)}
+                      >
+                        ✅ Switch to AI Route
+                      </button>
+                    )}
+                    <button
+                      className="lt-modal-dismiss"
+                      onClick={() => {
+                        setAiDeviationModal(false);
+                        deviationCountRef.current = 0;
+                        // allow re-trigger after 2 min if still off route
+                        setTimeout(() => { aiTriggeredRef.current = false; }, 120000);
+                      }}
+                    >
+                      {aiDeviationAnalysis.recommendedRouteIdx === activeRouteIdx
+                        ? "✅ Got it"
+                        : "Stay on current route"}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
+        {/* ──────────────────────────────────────────────────────────────────── */}
 
         {stoppedAlert && (
           <div className="lt-modal-overlay">
@@ -542,11 +853,32 @@ export default function LiveTracking() {
 
         {/* Destination info */}
         <div className="lt-info">
-          <p>📍 <strong>{ride.destinationName || "—"}</strong></p>
+          <p>📍 <strong>{ride?.destinationName || "—"}</strong></p>
           <p>🚗 {ride.vehicleType || "Bike"}</p>
         </div>
 
-        {/* ── NEW: Police Station Panel ── */}
+        {/* ─── NEW: Alternate route switcher pill bar ───────────────────────── */}
+        {allRoutes.length > 1 && (
+          <div className="lt-route-switcher">
+            <span className="lt-route-switcher-label">Routes</span>
+            {allRoutes.map((r, i) => (
+              <button
+                key={i}
+                className={`lt-route-pill ${i === activeRouteIdx ? "lt-route-pill-active" : ""}`}
+                onClick={() => switchRoute(i)}
+              >
+                <span className="lt-route-pill-num">{i + 1}</span>
+                <span className="lt-route-pill-meta">
+                  {r.distanceKm.toFixed(1)} km · {fmtMin(r.durationMin)}
+                </span>
+                {i === activeRouteIdx && <span className="lt-route-pill-dot" />}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* ──────────────────────────────────────────────────────────────────── */}
+
+        {/* Police Station Panel */}
         {policeStations.length > 0 && (
           <div className="lt-police-panel">
             <div className="lt-police-panel-header">
@@ -556,7 +888,6 @@ export default function LiveTracking() {
               </span>
             </div>
 
-            {/* Next station highlight card */}
             {nextStation && (
               <div className="lt-next-station-card">
                 <div className="lt-next-station-badge">NEXT</div>
@@ -575,9 +906,7 @@ export default function LiveTracking() {
               </div>
             )}
 
-            {/* Full route timeline */}
             <div className="lt-station-timeline">
-              {/* Start point */}
               <div className="lt-timeline-item lt-timeline-start">
                 <div className="lt-timeline-dot lt-dot-start">🏁</div>
                 <div className="lt-timeline-label">Start</div>
@@ -607,10 +936,9 @@ export default function LiveTracking() {
                 );
               })}
 
-              {/* Destination point */}
               <div className="lt-timeline-item lt-timeline-dest">
                 <div className="lt-timeline-dot lt-dot-dest">📍</div>
-                <div className="lt-timeline-label">{ride.destinationName || "Destination"}</div>
+                <div className="lt-timeline-label">{ride?.destinationName || "Destination"}</div>
                 <div className="lt-timeline-dist">
                   {remainingDist ? `${remainingDist} km` : "—"}
                 </div>
@@ -651,31 +979,35 @@ export default function LiveTracking() {
             <MapContainer center={currentPos} zoom={15} style={{ height: "100%", width: "100%" }}>
               <MapFollower center={currentPos} autoFollow={autoFollow} />
 
-              {/* TileLayer MUST come first — everything else renders on top */}
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>'
               />
 
-              {/* Route polyline */}
+              {/* ─── NEW: Alternate routes in grey dashed ──────────────────── */}
+              <AlternateRouteLayer
+                routes={allRoutes}
+                activeIdx={activeRouteIdx}
+                onSelect={switchRoute}
+              />
+
+              {/* Active route in amber */}
               {route.length > 0 && (
-                <Polyline positions={route} pathOptions={{ color: "#f59e0b", weight: 5, opacity: 0.9 }} />
+                <Polyline
+                  positions={route}
+                  pathOptions={{ color: "#f59e0b", weight: 5, opacity: 0.9 }}
+                />
               )}
 
-              {/* Safety heatmap — independent toggle */}
               {showSafetyMap && policeStations.length > 0 && (
                 <SafetyLayer policeStations={policeStations} route={route} />
               )}
 
-              {/* Police station markers — independent toggle, works without heatmap */}
               {showPoliceMarkers && policeStations.length > 0 && (
                 <PoliceMarkers stations={policeStations} currentDistKm={currentDistKm} />
               )}
 
-              {/* Current position marker */}
               <Marker position={currentPos} />
-
-              {/* Destination marker */}
               {destRef.current && <Marker position={destRef.current} />}
             </MapContainer>
           </div>

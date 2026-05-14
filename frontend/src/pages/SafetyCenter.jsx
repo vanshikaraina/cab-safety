@@ -6,11 +6,8 @@ import { useRecording } from "../context/RecordingContext.jsx";
 import { useSafetyMode } from "../context/SafetyModeContext";
 
 const SafetyCenter = () => {
-
   const navigate = useNavigate();
-
   const [toast, setToast] = useState("");
-
   const { isRecording, startRecording, stopRecording } = useRecording();
   const { enableSafetyMode, safetyMode } = useSafetyMode();
 
@@ -19,69 +16,55 @@ const SafetyCenter = () => {
     setTimeout(() => setToast(""), 3000);
   };
 
-
   const handleSafetyMode = () => {
-    if(!safetyMode){
-    enableSafetyMode();
-    showToast("🛡 Safety Mode enabled");
+    if (!safetyMode) {
+      enableSafetyMode();
+      showToast("🛡 Safety Mode enabled");
     }
-
     navigate("/safety-mode");
   };
 
-  const handleContacts = () => {
-    navigate("/emergency-contacts");
-  };
+  const handleContacts = () => navigate("/emergency-contacts");
 
-  const handleSOS = () => {
-    showToast("🚨 Emergency SOS triggered");
-  };
+  const handleSOS = () => showToast("🚨 Emergency SOS triggered");
 
   return (
-    <div className="safety-container">
-
-      <button
-        className="page-back-button"
-        onClick={() => navigate(-1)}
-      >
+    <div className="sc-container">
+      <button className="sc-back-btn" onClick={() => navigate(-1)}>
         ← Back
       </button>
 
-      <h2 className="safety-title">Safety Center</h2>
+      <div className="sc-header">
+        <h2 className="sc-title">Safety Center</h2>
+        <p className="sc-subtitle">Your personal emergency toolkit</p>
+      </div>
 
-      <div className="safety-grid">
+      {/* SOS — full width prominent */}
+      <button className="sc-sos-btn" onClick={handleSOS}>
+        <span className="sc-sos-icon">🚨</span>
+        <div className="sc-sos-text">
+          <span className="sc-sos-label">Emergency SOS</span>
+          <span className="sc-sos-desc">Trigger emergency alert immediately</span>
+        </div>
+        <span className="sc-sos-arrow">›</span>
+      </button>
 
-        <button className="safety-card safety-sos" onClick={handleSOS}>
-          <span className="safety-icon">🚨</span>
-          <div className="safety-text">
-            <span className="safety-label">Emergency SOS</span>
-            <span className="safety-desc">Trigger emergency alert</span>
-          </div>
+      {/* 2-col grid for the rest */}
+      <div className="sc-grid">
+        <button className="sc-card" onClick={() => shareLiveLocation(showToast)}>
+          <span className="sc-card-icon">📍</span>
+          <span className="sc-card-label">Share Location</span>
+          <span className="sc-card-desc">Let contacts track you</span>
+        </button>
+
+        <button className="sc-card" onClick={handleContacts}>
+          <span className="sc-card-icon">👨‍👩‍👧</span>
+          <span className="sc-card-label">Contacts</span>
+          <span className="sc-card-desc">Manage trusted people</span>
         </button>
 
         <button
-          className="safety-card"
-          onClick={() => shareLiveLocation(showToast)}
-        >
-          <span className="safety-icon">📍</span>
-          <div className="safety-text">
-            <span className="safety-label">Share Live Location</span>
-            <span className="safety-desc">Let contacts track your location</span>
-          </div>
-        </button>
-
-        <button className="safety-card" onClick={handleContacts}>
-          <span className="safety-icon">👨‍👩‍👧</span>
-          <div className="safety-text">
-            <span className="safety-label">Emergency Contacts</span>
-            <span className="safety-desc">Manage trusted contacts</span>
-          </div>
-        </button>
-
-        {/* RECORD AUDIO BUTTON */}
-
-        <button
-          className="safety-card"
+          className={`sc-card ${isRecording ? "sc-card--active" : ""}`}
           onClick={() => {
             if (isRecording) {
               stopRecording();
@@ -92,48 +75,29 @@ const SafetyCenter = () => {
             }
           }}
         >
-
-          <span className="safety-icon">
-            {isRecording ? "⏹" : "🎙"}
-          </span>
-
-          <div className="safety-text">
-
-            <span className="safety-label">
-              {isRecording ? "Stop Recording" : "Record Audio"}
-            </span>
-
-            <span className="safety-desc">
-              Capture safety evidence
-            </span>
-
-          </div>
-
+          <span className="sc-card-icon">{isRecording ? "⏹" : "🎙"}</span>
+          <span className="sc-card-label">{isRecording ? "Stop Rec." : "Record Audio"}</span>
+          <span className="sc-card-desc">Capture evidence</span>
         </button>
 
-        <button
-          className="safety-card"
-          onClick={() => navigate("/recordings")}
-        >
-          <span className="safety-icon">🎧</span>
-          <div className="safety-text">
-            <span className="safety-label">View Recordings</span>
-            <span className="safety-desc">Listen to saved audio</span>
-          </div>
+        <button className="sc-card" onClick={() => navigate("/recordings")}>
+          <span className="sc-card-icon">🎧</span>
+          <span className="sc-card-label">Recordings</span>
+          <span className="sc-card-desc">Listen to saved audio</span>
         </button>
 
-        <button className="safety-card" onClick={handleSafetyMode}>
-          <span className="safety-icon">🛡</span>
-          <div className="safety-text">
-            <span className="safety-label">Safety Mode</span>
-            <span className="safety-desc">Enable safety monitoring</span>
-          </div>
+        <button className="sc-card sc-card--wide" onClick={handleSafetyMode}>
+          <span className="sc-card-icon">🛡</span>
+          <span className="sc-card-label">Safety Mode</span>
+          <span className="sc-card-desc">Enable safety monitoring</span>
         </button>
-
       </div>
 
-      {toast && <div className="toast">{toast}</div>}
-
+      {toast && (
+        <div className="sc-toast">
+          {toast}
+        </div>
+      )}
     </div>
   );
 };
