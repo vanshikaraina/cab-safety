@@ -42,12 +42,33 @@ export const useVideoRecording = () => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
-      recorder.onstop = () => {
+        recorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         const url = URL.createObjectURL(blob);
         const name = `recording_${Date.now()}.webm`;
+
+        // Upload to backend
+        try {
+            const now = new Date();
+            const formData = new FormData();
+            formData.append("video", blob, name);
+            formData.append("date", now.toLocaleDateString());
+            formData.append("startTime", new Date(now - chunksRef.current.length * 1000).toLocaleTimeString());
+            formData.append("endTime", now.toLocaleTimeString());
+            formData.append("duration", chunksRef.current.length); // approx seconds
+
+            const token = localStorage.getItem("token");
+            await fetch("https://cab-safety.onrender.com/api/video-recordings/upload", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+            });
+        } catch (err) {
+            console.error("Upload failed:", err);
+        }
+
         setRecordings((prev) => [...prev, { url, name, blob, timestamp: new Date() }]);
-      };
+        };
 
       recorder.start(1000); // collect chunks every 1s
       mediaRecorderRef.current = recorder;
