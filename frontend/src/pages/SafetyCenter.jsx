@@ -4,12 +4,14 @@ import "../styles/safety.css";
 import { shareLiveLocation } from "../utils/locationShare";
 import { useRecording } from "../context/RecordingContext.jsx";
 import { useSafetyMode } from "../context/SafetyModeContext";
+import VideoRecorderModal from "../components/VideoRecorderModal";
 
 const SafetyCenter = () => {
   const navigate = useNavigate();
   const [toast, setToast] = useState("");
   const { isRecording, startRecording, stopRecording } = useRecording();
   const { enableSafetyMode, safetyMode } = useSafetyMode();
+  const [showCamera, setShowCamera] = useState(false);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -86,6 +88,18 @@ const SafetyCenter = () => {
           <span className="sc-card-desc">Listen to saved audio</span>
         </button>
 
+        <button className="sc-card" onClick={() => setShowCamera(true)}>
+          <span className="sc-card-icon">📹</span>
+          <span className="sc-card-label">Record Video</span>
+          <span className="sc-card-desc">Camera + audio evidence</span>
+        </button>
+
+        <button className="sc-card" onClick={() => navigate("/video-recordings")}>
+          <span className="sc-card-icon">🎬</span>
+          <span className="sc-card-label">Video Recordings</span>
+          <span className="sc-card-desc">View saved videos</span>
+        </button>
+
         <button className="sc-card sc-card--wide" onClick={handleSafetyMode}>
           <span className="sc-card-icon">🛡</span>
           <span className="sc-card-label">Safety Mode</span>
@@ -98,6 +112,8 @@ const SafetyCenter = () => {
           {toast}
         </div>
       )}
+
+      {showCamera && <VideoRecorderModal onClose={() => setShowCamera(false)} />}
     </div>
   );
 };

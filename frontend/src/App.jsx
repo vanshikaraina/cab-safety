@@ -18,6 +18,7 @@ import EmergencyContacts from "./components/EmergencyContacts";
 import AllRides from "./pages/AllRides";
 import FakeCall from "./pages/FakeCall";
 import Layout from "./pages/Layout";
+import VideoRecordings from "./pages/VideoRecordings";
 
 import { RecordingProvider, useRecording } from "./context/RecordingContext";
 import { SafetyModeProvider, useSafetyMode } from "./context/SafetyModeContext";
@@ -60,6 +61,7 @@ function AppContent() {
           <Route path="/profile" element={<ProfileSafety />} />
           <Route path="/safety-center" element={<SafetyCenter />} />
           <Route path="/recordings" element={<Recordings />} />
+          <Route path="/video-recordings" element={<VideoRecordings />} />
           <Route path="/safety-mode" element={<SafetyMode />} />
           <Route path="/rides" element={<AllRides />} />
           <Route path="/sos" element={<SOSCenter />} />
