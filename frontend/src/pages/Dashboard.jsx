@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import "../styles/Dashboard.css";
+import "../styles/dashboard.css";
 
 const API =
   import.meta.env.MODE === "development"

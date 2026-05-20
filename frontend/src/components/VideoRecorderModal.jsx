@@ -152,7 +152,6 @@ const styles = {
   savedTitle: { fontSize: 13, color: "#8e8e93", marginBottom: 8 },
   savedItem: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" },
   dlBtn: { background: "#0a84ff", border: "none", color: "#fff", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 13 },
-  closeBtn: { position: "absolute", top: 12, right: 14, background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", zIndex: 10 },
 };
 
 export default VideoRecorderModal;
