@@ -1,81 +1,106 @@
-// src/components/VolumeSOSCard.jsx
 import React from "react";
 import "../styles/VolumeSOSCard.css";
 
-export default function VolumeSOSCard({ armed, onToggle, pressCount = 0, isMobileUnsupported }) {
+export default function VolumeSOSCard({
+  armed,
+  onToggle,
+  pressCount = 0,
+  isMobileUnsupported,
+}) {
   return (
-    <div className={`vsос-card ${armed && !isMobileUnsupported ? "vsос-card-armed" : ""} ${isMobileUnsupported ? "vsос-card-disabled" : ""}`}>
-
-      <div className="vsос-header">
-        <div className="vsос-icon-wrap">
-          <span className="vsос-icon">🔉</span>
+    <div
+      className={`vsos-card ${
+        armed && !isMobileUnsupported ? "vsos-card-armed" : ""
+      } ${isMobileUnsupported ? "vsos-card-disabled" : ""}`}
+    >
+      <div className="vsos-header">
+        <div className="vsos-icon-wrap">
+          <span className="vsos-icon">🔉</span>
         </div>
-        <div className="vsос-info">
-          <p className="vsос-title">Volume Button SOS</p>
-          <p className="vsос-desc">Press Volume Down 3× fast to send SOS</p>
+
+        <div className="vsos-info">
+          <p className="vsos-title">Volume Button SOS</p>
+          <p className="vsos-desc">
+            Press Volume Down, V, or ↓ key 3× fast to send SOS
+          </p>
         </div>
 
         {isMobileUnsupported ? (
-          <span className="vsос-unsupported-badge">Desktop Only</span>
+          <span className="vsos-unsupported-badge">Desktop Only</span>
         ) : (
           <button
-            className={`vsос-toggle ${armed ? "vsос-toggle-on" : "vsос-toggle-off"}`}
+            className={`vsos-toggle ${
+              armed ? "vsos-toggle-on" : "vsos-toggle-off"
+            }`}
             onClick={() => onToggle(!armed)}
             aria-label={armed ? "Disarm" : "Arm"}
           >
-            <span className="vsос-toggle-knob" />
+            <span className="vsos-toggle-knob" />
           </button>
         )}
       </div>
 
-      {/* Mobile: clear explanation */}
       {isMobileUnsupported && (
-        <div className="vsос-mobile-notice">
-          <p className="vsос-notice-heading">⚠️ Not supported on mobile browsers</p>
-          <p className="vsос-notice-body">
-            Android and iOS block volume key events from all web apps at the OS level —
-            this is a system security restriction that cannot be bypassed.
-            <br /><br />
-            <strong>Use Shake SOS instead</strong> — it works on all mobile devices and is
-            actually more reliable in an emergency.
+        <div className="vsos-mobile-notice">
+          <p className="vsos-notice-heading">
+            ⚠️ Not supported on mobile browsers
+          </p>
+          <p className="vsos-notice-body">
+            Android and iOS block volume key events from web apps.
           </p>
         </div>
       )}
 
-      {/* Desktop: live press feedback steps */}
       {!isMobileUnsupported && (
         <>
-          <div className="vsос-steps">
+          <div className="vsos-steps">
             {[1, 2, 3].map((n) => (
               <React.Fragment key={n}>
-                <div className={`vsос-step ${armed ? "vsос-step-armed" : ""} ${pressCount >= n ? "vsос-step-pressed" : ""}`}>
-                  <span className="vsос-step-num">{pressCount >= n ? "✓" : n}</span>
-                  <span className="vsос-step-label">Vol Down</span>
+                <div
+                  className={`vsos-step ${
+                    armed ? "vsos-step-armed" : ""
+                  } ${pressCount >= n ? "vsos-step-pressed" : ""}`}
+                >
+                  <span className="vsos-step-num">
+                    {pressCount >= n ? "✓" : n}
+                  </span>
+                  <span className="vsos-step-label">Key Press</span>
                 </div>
-                {n < 3 && <span className="vsос-step-arrow">›</span>}
+
+                {n < 3 && <span className="vsos-step-arrow">›</span>}
               </React.Fragment>
             ))}
-            <span className="vsос-step-arrow">›</span>
-            <div className={`vsос-step vsос-step-result ${armed ? "vsос-step-armed" : ""}`}>
-              <span className="vsос-step-num">🆘</span>
-              <span className="vsос-step-label">SOS Sent</span>
+
+            <span className="vsos-step-arrow">›</span>
+
+            <div
+              className={`vsos-step vsos-step-result ${
+                armed ? "vsos-step-armed" : ""
+              }`}
+            >
+              <span className="vsos-step-num">🆘</span>
+              <span className="vsos-step-label">SOS Sent</span>
             </div>
           </div>
 
-          <div className={`vsос-status ${armed ? "vsос-status-armed" : "vsос-status-idle"}`}>
-            <span className="vsос-status-dot" />
-            <span className="vsос-status-text">
+          <div
+            className={`vsos-status ${
+              armed ? "vsos-status-armed" : "vsos-status-idle"
+            }`}
+          >
+            <span className="vsos-status-dot" />
+            <span className="vsos-status-text">
               {armed
                 ? pressCount > 0
                   ? `${pressCount}/3 presses detected — keep going!`
-                  : "Armed — listening for Volume Down × 3"
+                  : "Armed — press Volume Down, V, or ↓ key 3×"
                 : "Disarmed — toggle to activate"}
             </span>
           </div>
 
           {armed && (
-            <p className="vsос-note">
-              ⚡ Works while this tab is open on desktop. Keep the window visible for best results.
+            <p className="vsos-note">
+              ⚡ If your laptop blocks volume keys, press V or ↓ three times.
             </p>
           )}
         </>

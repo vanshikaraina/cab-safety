@@ -1,16 +1,22 @@
-//Dashboard.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-// import Navbar from "../components/Navbar";
-import "../styles/dashboard.css";
+import { useNavigate, useLocation } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import "../styles/Dashboard.css";
 
-const API = "https://cab-safety.onrender.com/api";
+const API =
+  import.meta.env.MODE === "development"
+    ? "http://localhost:5000"
+    : "https://cab-safety.onrender.com/api";
 
 function getToken() {
-  return typeof window !== "undefined"
-    ? localStorage.getItem("token")
-    : null;
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("jwt") ||
+    sessionStorage.getItem("token") ||
+    null
+  );
 }
 
 function timeAgo(dateStr) {
@@ -18,6 +24,7 @@ function timeAgo(dateStr) {
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
+
   if (mins < 1) return "Just now";
   if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
@@ -27,13 +34,16 @@ function timeAgo(dateStr) {
 function formatTime(mins) {
   if (!mins) return "0 min";
   if (mins < 60) return `${mins} min`;
+
   const h = Math.floor(mins / 60);
   const m = mins % 60;
+
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 function getGreeting() {
   const h = new Date().getHours();
+
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
@@ -41,72 +51,132 @@ function getGreeting() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  const fetchDashboard = useCallback(() => {
     const token = getToken();
-    if (!token) { navigate("/auth"); return; }
 
-    axios.get(`${API}/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => { setData(res.data); setLoading(false); })
-      .catch(() => { setError("Failed to load dashboard."); setLoading(false); });
+    console.log("Dashboard token found:", token ? "YES" : "NO");
+
+    if (!token) {
+      setLoading(false);
+      navigate("/auth?mode=login");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    axios
+      .get(`${API}/api/dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        console.log("Dashboard data loaded:", res.data);
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(
+          "Dashboard API error:",
+          err.response?.status,
+          err.response?.data || err.message
+        );
+
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("jwt");
+          sessionStorage.removeItem("token");
+          navigate("/auth?mode=login");
+          return;
+        }
+
+        setError(
+          err.response?.data?.message ||
+            `Failed to load dashboard (${err.response?.status || "network error"})`
+        );
+
+        setLoading(false);
+      });
   }, [navigate]);
 
-  if (loading) return (
-    <>
-      {/* <Navbar /> */}
-      <div className="db-container db-loading">
-        <div className="db-spinner" />
-        <p>Loading your dashboard…</p>
-      </div>
-    </>
-  );
+  useEffect(() => {
+    fetchDashboard();
+  }, [location.key, fetchDashboard]);
 
-  if (error) return (
-    <>
-      {/* <Navbar /> */}
-      <div className="db-container db-loading">
-        <p style={{ color: "#fca5a5" }}>{error}</p>
-      </div>
-    </>
-  );
+  if (loading) {
+    return (
+      <>
+        <div className="db-container db-loading">
+          <div className="db-spinner" />
+          <p>Loading your dashboard…</p>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <div className="db-container db-loading">
+          <p style={{ color: "#fca5a5" }}>{error}</p>
+          <button
+            style={{ marginTop: 16, padding: "8px 20px", cursor: "pointer" }}
+            onClick={fetchDashboard}
+          >
+            Retry
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  if (!data) return null;
 
   const { user, stats, recentRides } = data;
+
   const isNight = new Date().getHours() >= 22 || new Date().getHours() < 5;
 
   return (
     <>
-      {/* <Navbar /> */}
       <div className="db-container">
-
-        {/* ── Welcome Banner ── */}
         <div className="db-banner">
           <div className="db-banner-left">
             <p className="db-greeting">{getGreeting()},</p>
-            <h1 className="db-name">{user.firstName} {user.lastName} 👋</h1>
+
+            <h1 className="db-name">
+              {user.firstName} {user.lastName} 👋
+            </h1>
+
             <p className="db-sub">
               {stats.activeRide
                 ? "⚡ You have an active ride in progress"
                 : isNight
-                  ? "🌙 Stay safe tonight. Night rider mode is " + (user.nightRider ? "on" : "off") + "."
-                  : "Ready for your next ride? Stay safe out there."}
+                ? "🌙 Stay safe tonight. Night rider mode is " +
+                  (user.nightRider ? "on" : "off") +
+                  "."
+                : "Ready for your next ride? Stay safe out there."}
             </p>
           </div>
+
           <div className="db-avatar">
-            {user.profilePhoto
-              ? <img src={user.profilePhoto} alt="avatar" />
-              : <div className="db-avatar-letter">
+            {user.profilePhoto ? (
+              <img src={user.profilePhoto} alt="avatar" />
+            ) : (
+              <div className="db-avatar-letter">
                 {user.firstName?.[0]?.toUpperCase() || "?"}
               </div>
-            }
+            )}
           </div>
         </div>
 
-        {/* ── Active Ride Banner ── */}
         {stats.activeRide && (
           <div className="db-active-banner">
             <div className="db-active-dot" />
@@ -117,23 +187,27 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Stats Grid ── */}
         <div className="db-stats">
           <div className="db-stat-card db-stat-blue">
             <div className="db-stat-icon">🏁</div>
             <div className="db-stat-value">{stats.totalRides}</div>
             <div className="db-stat-label">Total Rides</div>
           </div>
+
           <div className="db-stat-card db-stat-green">
             <div className="db-stat-icon">📏</div>
-            <div className="db-stat-value">{stats.totalDistance} <span>km</span></div>
+            <div className="db-stat-value">
+              {stats.totalDistance} <span>km</span>
+            </div>
             <div className="db-stat-label">Distance Covered</div>
           </div>
+
           <div className="db-stat-card db-stat-purple">
             <div className="db-stat-icon">⏱️</div>
             <div className="db-stat-value">{formatTime(stats.totalTime)}</div>
             <div className="db-stat-label">Time on Road</div>
           </div>
+
           <div className="db-stat-card db-stat-orange">
             <div className="db-stat-icon">🛡️</div>
             <div className="db-stat-value">
@@ -143,26 +217,41 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Quick Actions ── */}
         <div className="db-section">
           <h2 className="db-section-title">Quick Actions</h2>
+
           <div className="db-actions">
-            <button className="db-action-card db-action-primary" onClick={() => navigate("/start-ride")}>
+            <button
+              className="db-action-card db-action-primary"
+              onClick={() => navigate("/start-ride")}
+            >
               <span className="db-action-icon">🚀</span>
               <span className="db-action-label">Start New Ride</span>
               <span className="db-action-arrow">→</span>
             </button>
-            <button className="db-action-card" onClick={() => navigate("/profile")}>
+
+            <button
+              className="db-action-card"
+              onClick={() => navigate("/profile")}
+            >
               <span className="db-action-icon">👤</span>
               <span className="db-action-label">My Profile</span>
               <span className="db-action-arrow">→</span>
             </button>
-            <button className="db-action-card" onClick={() => navigate("/safety-center")}>
+
+            <button
+              className="db-action-card"
+              onClick={() => navigate("/safety-center")}
+            >
               <span className="db-action-icon">🛡️</span>
               <span className="db-action-label">Safety Center</span>
               <span className="db-action-arrow">→</span>
             </button>
-            <button className="db-action-card db-action-sos" onClick={() => navigate("/sos")}>
+
+            <button
+              className="db-action-card db-action-sos"
+              onClick={() => navigate("/profile#sos")}
+            >
               <span className="db-action-icon">🆘</span>
               <span className="db-action-label">SOS</span>
               <span className="db-action-arrow">→</span>
@@ -170,14 +259,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Recent Rides ── */}
         <div className="db-section">
           <h2 className="db-section-title">Recent Rides</h2>
 
           {recentRides.length === 0 ? (
             <div className="db-empty">
               <p>🏍️ No rides yet. Start your first ride!</p>
-              <button className="db-start-btn" onClick={() => navigate("/start-ride")}>
+
+              <button
+                className="db-start-btn"
+                onClick={() => navigate("/start-ride")}
+              >
                 Start Ride
               </button>
             </div>
@@ -185,11 +277,17 @@ export default function Dashboard() {
             <>
               <div className="db-rides">
                 {recentRides.slice(0, 2).map((ride, i) => (
-                  <div key={ride._id} className="db-ride-card" style={{ animationDelay: `${i * 0.07}s` }}>
+                  <div
+                    key={ride._id}
+                    className="db-ride-card"
+                    style={{ animationDelay: `${i * 0.07}s` }}
+                  >
                     <div className="db-ride-icon">
-                      {ride.vehicleType === "car" ? "🚗"
-                        : ride.vehicleType === "scooter" ? "🛵"
-                          : "🏍️"}
+                      {ride.vehicleType === "car"
+                        ? "🚗"
+                        : ride.vehicleType === "scooter"
+                        ? "🛵"
+                        : "🏍️"}
                     </div>
 
                     <div className="db-ride-info">
@@ -198,28 +296,27 @@ export default function Dashboard() {
                       </p>
 
                       <p className="db-ride-meta">
-                        {(ride.actualDistance ?? ride.distance)
-                        ? `${ride.actualDistance ?? ride.distance} km`
-                        : "—"}
-
-                      {(ride.actualTime ?? ride.expectedTime)
-                        ? ` · ${ride.actualTime ?? ride.expectedTime} min`
-                        : ""}
-                        {" · "}{timeAgo(ride.createdAt)}
+                        {ride.distance ? `${ride.distance} km` : "—"}
+                        {ride.expectedTime ? ` · ${ride.expectedTime} min` : ""}
+                        {" · "}
+                        {timeAgo(ride.createdAt)}
                       </p>
                     </div>
 
-                    <div className={`db-ride-status ${ride.status === "COMPLETED"
-                      ? "completed"
-                      : ride.status === "ACTIVE"
-                        ? "active"
-                        : "cancelled"
-                      }`}>
+                    <div
+                      className={`db-ride-status ${
+                        ride.status === "COMPLETED"
+                          ? "completed"
+                          : ride.status === "ACTIVE"
+                          ? "active"
+                          : "cancelled"
+                      }`}
+                    >
                       {ride.status === "COMPLETED"
                         ? "✓ Done"
                         : ride.status === "ACTIVE"
-                          ? "⚡ Live"
-                          : "✕ Cancelled"}
+                        ? "⚡ Live"
+                        : "✕ Cancelled"}
                     </div>
 
                     {ride.status === "ACTIVE" && (
@@ -227,7 +324,7 @@ export default function Dashboard() {
                         className="db-rejoin-btn"
                         onClick={() => navigate(`/tracking/${ride._id}`)}
                       >
-                        Rejoin
+                        Rejoin →
                       </button>
                     )}
                   </div>
@@ -248,15 +345,17 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── Safety Tip ── */}
         <div className="db-tip">
           <span className="db-tip-icon">💡</span>
+
           <p>
-            <strong>Safety tip:</strong> Always add emergency contacts before starting a night ride.
-            {" "}<span className="db-tip-link" onClick={() => navigate("/profile")}>Add contacts →</span>
+            <strong>Safety tip:</strong> Always add emergency contacts before
+            starting a night ride.{" "}
+            <span className="db-tip-link" onClick={() => navigate("/profile")}>
+              Add contacts →
+            </span>
           </p>
         </div>
-
       </div>
     </>
   );

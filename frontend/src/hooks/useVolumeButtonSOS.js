@@ -1,16 +1,8 @@
 // src/hooks/useVolumeButtonSOS.js
-//
-// Volume Down × 3 within 2 seconds → calls onTrigger().
-// Calls onProgress(count) for live UI feedback (0-3).
-//
-// IMPORTANT: Mobile browsers (Android Chrome, iOS Safari) block all volume key
-// events at the OS level — this hook does nothing on those devices.
-// isMobileUnsupported is returned so the UI can show a clear notice.
-
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 const REQUIRED_PRESSES = 3;
-const WINDOW_MS        = 2000;
+const WINDOW_MS = 3000;
 
 function detectMobile() {
   if (typeof navigator === "undefined") return false;
@@ -18,69 +10,90 @@ function detectMobile() {
 }
 
 export default function useVolumeButtonSOS({ armed, onTrigger, onProgress }) {
-  const pressTimesRef       = useRef([]);
-  const wakeLockRef         = useRef(null);
+  const pressTimesRef = useRef([]);
+  const wakeLockRef = useRef(null);
+
+  const onTriggerRef = useRef(onTrigger);
+  const onProgressRef = useRef(onProgress);
+
   const isMobileUnsupported = detectMobile();
 
-  // ── Wake Lock (desktop / tablet only) ────────────────────────
+  useEffect(() => {
+    onTriggerRef.current = onTrigger;
+    onProgressRef.current = onProgress;
+  }, [onTrigger, onProgress]);
+
   useEffect(() => {
     if (!armed || isMobileUnsupported) return;
-    const acquire = async () => {
+
+    const acquireWakeLock = async () => {
       try {
         if ("wakeLock" in navigator) {
           wakeLockRef.current = await navigator.wakeLock.request("screen");
-          wakeLockRef.current.addEventListener("release", () => {
-            if (armed) acquire();
-          });
         }
-      } catch (e) {
-        console.warn("Wake lock unavailable:", e.message);
+      } catch (err) {
+        console.warn("Wake lock unavailable:", err);
       }
     };
-    acquire();
+
+    acquireWakeLock();
+
     return () => {
-      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current?.release?.().catch(() => {});
       wakeLockRef.current = null;
     };
   }, [armed, isMobileUnsupported]);
 
-  // ── Volume key listener ───────────────────────────────────────
-  const handleKeyDown = useCallback((e) => {
-    const isVolumeDown =
-      e.key  === "AudioVolumeDown" ||
-      e.code === "VolumeDown"      ||
-      e.key  === "VolumeDown";
-    if (!isVolumeDown) return;
-    e.preventDefault();
-
-    const now = Date.now();
-    pressTimesRef.current = pressTimesRef.current.filter(t => now - t < WINDOW_MS);
-    pressTimesRef.current.push(now);
-
-    const count = pressTimesRef.current.length;
-    onProgress?.(count);
-
-    if (count >= REQUIRED_PRESSES) {
-      pressTimesRef.current = [];
-      onProgress?.(0);
-      onTrigger();
-    }
-  }, [onTrigger, onProgress]);
-
   useEffect(() => {
-    // Never attach on mobile — OS blocks events anyway, no point listening
     if (!armed || isMobileUnsupported) {
       pressTimesRef.current = [];
-      onProgress?.(0);
+      onProgressRef.current?.(0);
       return;
     }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      pressTimesRef.current = [];
-      onProgress?.(0);
+
+    const handleKeyDown = (e) => {
+      const isSOSKey =
+        e.key === "AudioVolumeDown" ||
+        e.code === "AudioVolumeDown" ||
+        e.key === "VolumeDown" ||
+        e.code === "VolumeDown" ||
+        e.key === "v" ||
+        e.key === "V" ||
+        e.code === "KeyV" ||
+        e.key === "ArrowDown" ||
+        e.code === "ArrowDown";
+
+      if (!isSOSKey) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const now = Date.now();
+
+      pressTimesRef.current = pressTimesRef.current.filter(
+        (time) => now - time <= WINDOW_MS
+      );
+
+      pressTimesRef.current.push(now);
+
+      const count = Math.min(pressTimesRef.current.length, REQUIRED_PRESSES);
+      onProgressRef.current?.(count);
+
+      if (count >= REQUIRED_PRESSES) {
+        pressTimesRef.current = [];
+        onProgressRef.current?.(0);
+        onTriggerRef.current?.();
+      }
     };
-  }, [armed, isMobileUnsupported, handleKeyDown, onProgress]);
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    document.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [armed, isMobileUnsupported]);
 
   return { isMobileUnsupported };
 }
