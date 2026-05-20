@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSafetyMode } from "../context/SafetyModeContext";
 import { useRecording } from "../context/RecordingContext";
@@ -8,56 +8,38 @@ const SafetyMode = () => {
 
   const navigate = useNavigate();
 
-  const { seconds = 0, disableSafetyMode } = useSafetyMode();
-  const { isRecording, startRecording, stopRecording } = useRecording();
+  const {
+    seconds = 0,
+    disableSafetyMode,
+    showCheck,
+    confirmSafe,
+    reportIssue,
+    batteryLevel
+  } = useSafetyMode();
+
+  const {
+    isRecording,
+    startRecording,
+    stopRecording
+  } = useRecording();
 
   const [confirmExit, setConfirmExit] = useState(false);
-  const [showCheck, setShowCheck] = useState(false);
-  const [missedChecks, setMissedChecks] = useState(0);
 
   const formatTime = (s) => {
+
     const mins = Math.floor(s / 60);
     const secs = s % 60;
-    return `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
-  };
 
-  // trigger safety check every 60 seconds
-  useEffect(() => {
-    if (seconds > 0 && seconds % 60 === 0) {
-      setShowCheck(true);
-    }
-  }, [seconds]);
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 
-  // auto close safety check
-  useEffect(() => {
-    if (showCheck) {
-
-      const timer = setTimeout(() => {
-        setShowCheck(false);
-        setMissedChecks(prev => prev + 1);
-      }, 15000);
-
-      return () => clearTimeout(timer);
-
-    }
-  }, [showCheck]);
-
-  // alert if 3 missed checks
-  useEffect(() => {
-    if (missedChecks >= 3) {
-      alert("⚠️ Safety check missed 3 times. Emergency protocol should trigger.");
-    }
-  }, [missedChecks]);
-
-  const handleSafe = () => {
-    setShowCheck(false);
-    setMissedChecks(0);
   };
 
   const handleStartMonitoring = () => {
+
     if (!isRecording) {
       startRecording();
     }
+
   };
 
   const handleTurnOff = () => {
@@ -68,7 +50,9 @@ const SafetyMode = () => {
     }
 
     stopRecording();
+
     disableSafetyMode();
+
     navigate("/safety-center");
 
   };
@@ -87,10 +71,11 @@ const SafetyMode = () => {
       <h2 className="title">🛡 Safety Mode Active</h2>
 
       <div className="status-badge">
-        {isRecording ? "🟢 Monitoring Active" : "🔴 Monitoring Paused"}
+        {isRecording
+          ? "🟢 Monitoring Active"
+          : "🔴 Monitoring Paused"}
       </div>
 
-      {/* start monitoring button */}
       {!isRecording && (
         <button
           className="start-btn"
@@ -105,16 +90,22 @@ const SafetyMode = () => {
         <p>Ride Duration</p>
       </div>
 
+      {/* BATTERY STATUS */}
+
+      <div className="battery-status">
+
+        {batteryLevel !== null
+          ? `🔋 Battery: ${batteryLevel}%`
+          : "🔋 Battery unavailable"}
+
+      </div>
+
       {isRecording && (
         <div className="recording-indicator">
           <span className="dot"></span>
           Recording Audio
         </div>
       )}
-
-      <p className="missed-checks">
-        Missed Safety Checks: {missedChecks} / 3
-      </p>
 
       {showCheck && (
 
@@ -128,14 +119,14 @@ const SafetyMode = () => {
 
             <button
               className="safe-btn"
-              onClick={handleSafe}
+              onClick={confirmSafe}
             >
               Yes I'm Safe
             </button>
 
             <button
               className="danger-btn"
-              onClick={() => alert("Issue reported")}
+              onClick={reportIssue}
             >
               Report Problem
             </button>
@@ -163,12 +154,15 @@ const SafetyMode = () => {
       <div className="confirm-box">
 
         <label>
+
           <input
             type="checkbox"
             checked={confirmExit}
             onChange={(e) => setConfirmExit(e.target.checked)}
           />
+
           {" "}I confirm I want to disable Safety Mode
+
         </label>
 
       </div>

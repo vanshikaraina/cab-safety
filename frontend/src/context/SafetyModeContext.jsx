@@ -9,6 +9,8 @@ export const SafetyModeProvider = ({ children }) => {
   const [seconds, setSeconds] = useState(0);
   const [showCheck, setShowCheck] = useState(false);
   const [missedChecks, setMissedChecks] = useState(0);
+  const [batteryLevel, setBatteryLevel] = useState(null);
+  const [lowBatteryTriggered, setLowBatteryTriggered] = useState(false);
 
   const API = "https://cab-safety.onrender.com/api";
 
@@ -54,6 +56,72 @@ export const SafetyModeProvider = ({ children }) => {
     }
 
   }, [showCheck]);
+
+  useEffect(() => {
+
+  let battery;
+  let updateBattery;
+
+  const setupBattery = async () => {
+
+    if (!navigator.getBattery) {
+      console.log("Battery API not supported");
+      return;
+    }
+
+    battery = await navigator.getBattery();
+
+    updateBattery = () => {
+
+      const level = Math.round(battery.level * 100);
+
+      setBatteryLevel(level);
+
+      if (
+        safetyMode &&
+        level <= 15 &&
+        !lowBatteryTriggered
+      ) {
+
+        setLowBatteryTriggered(true);
+
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 200, 300]);
+        }
+
+        alert(
+          `⚠️ Battery low (${level}%). Please charge your phone.`
+        );
+
+      }
+
+    };
+
+    updateBattery();
+
+    battery.addEventListener(
+      "levelchange",
+      updateBattery
+    );
+
+  };
+
+  setupBattery();
+
+  return () => {
+
+    if (battery && updateBattery) {
+
+      battery.removeEventListener(
+        "levelchange",
+        updateBattery
+      );
+
+    }
+
+  };
+
+  }, [safetyMode, lowBatteryTriggered]);
 
   useEffect(() => {
 
@@ -136,6 +204,7 @@ export const SafetyModeProvider = ({ children }) => {
     setSeconds(0);
     setShowCheck(false);
     setMissedChecks(0);
+    setLowBatteryTriggered(false);
   };
 
   return (
@@ -143,6 +212,7 @@ export const SafetyModeProvider = ({ children }) => {
       value={{
         safetyMode,
         seconds,
+        batteryLevel,
         showCheck,
         confirmSafe,
         reportIssue,
