@@ -14,7 +14,7 @@ import useVolumeButtonSOS from "../hooks/useVolumeButtonSOS";
 import useShakeSOS from "../hooks/useShakeSOS";
 import useCountdownSOS from "../hooks/useCountdownSOS";
 
-import "../styles/SOSCenter.css";
+import "../styles/SOScenter.css";
 
 const API =
   import.meta.env.MODE === "development"
