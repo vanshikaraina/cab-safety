@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/recordings.css";
+import "../styles/videoRecording.css";
 import authFetch from "../utils/authFetch";
 
 const VideoRecordings = () => {
@@ -54,15 +54,11 @@ const VideoRecordings = () => {
 
   }, [sort, dateFilter, recordings]);
 
-
   const deleteRecording = async (id) => {
 
     try {
 
-      authFetch(`/api/video-recordings/${id}`,
-        { method: "DELETE" }
-      );
-
+      authFetch(`/api/video-recordings/${id}`, { method: "DELETE" });
       fetchRecordings();
 
     } catch (err) {
@@ -75,23 +71,17 @@ const VideoRecordings = () => {
 
   return (
 
-    <div className="recordings-container">
+    <div className="video-rec-container">
 
-      <button
-        className="back-btn"
-        onClick={() => navigate(-1)}
-      >
+      <button className="video-rec-back-btn" onClick={() => navigate(-1)}>
         ← Back
       </button>
 
-      <h2 className="recordings-title">Video Recordings</h2>
+      <h2 className="video-rec-title">Video Recordings</h2>
 
-      <div className="controls">
+      <div className="video-rec-controls">
 
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
         </select>
@@ -104,36 +94,40 @@ const VideoRecordings = () => {
       </div>
 
       {filtered.length === 0 && (
-        <p className="no-recordings">No recordings found.</p>
+        <p className="video-rec-empty">No recordings found.</p>
       )}
 
-      <div className="recordings-list">
+      <div className="video-rec-list">
 
         {filtered.map((rec) => (
 
-          <div className="recording-card" key={rec._id}>
+          <div className="video-rec-card" key={rec._id}>
 
-            <div className="recording-info">
-
-              <p><strong>Date:</strong> {rec.date}</p>
-              <p><strong>Start:</strong> {rec.startTime}</p>
-              <p><strong>End:</strong> {rec.endTime}</p>
-              <p><strong>Duration:</strong> {rec.duration}s</p>
-
-            </div>
-
+            {/* Small video on the left */}
             <video
               controls
               src={`https://cab-safety.onrender.com/${rec.fileUrl}`}
-              style={{ width: "100%", borderRadius: 8, marginBlock: 8 }}
+              className="video-rec-thumb"
             />
 
-            <button
-              className="delete-btn"
-              onClick={() => deleteRecording(rec._id)}
-            >
-              Delete
-            </button>
+            {/* Info + delete on the right */}
+            <div className="video-rec-right">
+
+              <div className="video-rec-info">
+                <p><strong>Date:</strong> {rec.date}</p>
+                <p><strong>Start:</strong> {rec.startTime}</p>
+                <p><strong>End:</strong> {rec.endTime}</p>
+                <p><strong>Duration:</strong> {rec.duration}s</p>
+              </div>
+
+              <button
+                className="video-rec-delete-btn"
+                onClick={() => deleteRecording(rec._id)}
+              >
+                Delete
+              </button>
+
+            </div>
 
           </div>
 
