@@ -410,8 +410,7 @@ export default function LiveTracking() {
       node["amenity"="police"](${minLat},${minLng},${maxLat},${maxLng});
     );out body;`;
     try {
-      const res = await axios.post("https://overpass-api.de/api/interpreter", query,
-        { headers: { "Content-Type": "text/plain" }, timeout: 40000 });
+      const res = await overpassQuery(query);
       const nodes = res.data?.elements || [];
       const cumDists = buildCumDists(coords);
       const seen = new Set();
