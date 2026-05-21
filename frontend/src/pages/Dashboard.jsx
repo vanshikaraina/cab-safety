@@ -72,7 +72,7 @@ export default function Dashboard() {
     setError("");
 
     axios
-      .get(`${API}/api/dashboard`, {
+      .get(`${API}/dashboard`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
