@@ -19,7 +19,7 @@ import "../styles/SOScenter.css";
 const API =
   import.meta.env.MODE === "development"
     ? "http://localhost:5000/api"
-    : "https://ridesafe-backend-0x1u.onrender.com/api";
+    : "https://cab-safety.onrender.com/api";
 
 function getToken() {
   return (
