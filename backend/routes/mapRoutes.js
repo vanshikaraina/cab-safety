@@ -10,35 +10,43 @@ const OVERPASS_MIRRORS = [
 ];
 
 router.post("/overpass", async (req, res) => {
-  const { query } = req.body;
+  try {
+    const { query } = req.body;
 
-  if (!query) {
-    return res.status(400).json({ message: "Query required" });
-  }
-
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      const response = await axios.post(mirror, query, {
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        timeout: 15000,
+    if (!query) {
+      return res.status(400).json({
+        message: "Query is required",
       });
-
-      return res.json(response.data);
-    } catch (err) {
-      const status = err.response?.status;
-
-      if ([429, 502, 504].includes(status)) {
-        console.warn(`Mirror failed: ${mirror}`);
-        continue;
-      }
-
-      console.error(err.message);
     }
-  }
 
-  return res.json({ elements: [] });
+    for (const mirror of OVERPASS_MIRRORS) {
+      try {
+        const response = await axios.post(mirror, query, {
+          headers: {
+            "Content-Type": "text/plain",
+          },
+          timeout: 15000,
+        });
+
+        return res.json(response.data);
+      } catch (err) {
+        const status = err.response?.status;
+
+        if ([429, 502, 504].includes(status)) {
+          continue;
+        }
+
+        console.error(err.message);
+      }
+    }
+
+    return res.json({ elements: [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
 });
 
 export default router;
