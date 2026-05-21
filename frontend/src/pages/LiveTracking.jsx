@@ -253,6 +253,19 @@ function AlternateRouteLayer({ routes, activeIdx, onSelect }) {
   );
 }
 
+async function overpassQuery(query) {
+  try {
+    const res = await axios.post(`${API}/maps/overpass`, {
+      query,
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("Backend overpass error:", err);
+    return { elements: [] };
+  }
+}
+
 export default function LiveTracking() {
   const { rideId } = useParams();
   const navigate = useNavigate();
@@ -411,7 +424,7 @@ export default function LiveTracking() {
     );out body;`;
     try {
       const res = await overpassQuery(query);
-      const nodes = res.data?.elements || [];
+      const nodes = res?.elements || [];
       const cumDists = buildCumDists(coords);
       const seen = new Set();
       const stations = nodes
