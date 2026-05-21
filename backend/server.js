@@ -11,7 +11,7 @@ import recordingRoutes from "./routes/recordingRoutes.js";
 import sosRoutes from "./routes/sosRoutes.js";
 import callAiRoutes from "./routes/callAiRoutes.js";
 import videoRecordingRoutes from "./routes/videoRecordingRoutes.js";
-import mapsRoutes from "./routes/mapsRoutes.js";
+import mapsRoutes from "./routes/mapRoutes.js";
 
 dotenv.config();
 
@@ -25,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-app.use("/api/maps", mapRoutes);
+app.use("/api/maps", mapsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rides", rideRoutes);
