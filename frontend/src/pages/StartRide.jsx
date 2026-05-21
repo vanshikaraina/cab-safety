@@ -14,12 +14,6 @@ import "../styles/ride.css";
 const API = `${import.meta.env.VITE_API_URL}/api`;
 const TRAFFIC_MULTIPLIER = 1.4;
 
-// Fallback Overpass mirrors in order — if one 429s, try the next
-const OVERPASS_MIRRORS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
 
 function getToken() {
   return (
@@ -32,26 +26,17 @@ function getToken() {
 }
 
 // FIX: Overpass fetch with automatic mirror fallback on 429
-async function overpassQuery(query, timeout = 15000) {
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      const res = await axios.post(mirror, query, {
-        headers: { "Content-Type": "text/plain" },
-        timeout,
-      });
-      return res.data;
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 429 || status === 504 || status === 502) {
-        console.warn(`Overpass mirror ${mirror} failed (${status}), trying next…`);
-        continue; // try next mirror
-      }
-      throw err; // non-rate-limit error — don't retry
-    }
+async function overpassQuery(query) {
+  try {
+    const res = await axios.post(`${API}/maps/overpass`, {
+      query,
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("Backend overpass error:", err);
+    return { elements: [] };
   }
-  // All mirrors exhausted — return empty result instead of throwing
-  console.warn("All Overpass mirrors exhausted, returning empty result");
-  return { elements: [] };
 }
 
 function MapUpdater({ center }) {
