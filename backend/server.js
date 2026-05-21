@@ -25,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-app.use("/api/maps", mapsRoutes);
+app.use("/api/maps", mapRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rides", rideRoutes);
